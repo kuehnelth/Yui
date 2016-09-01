@@ -85,7 +85,7 @@ class IrcBot(object):
         self.events['rawSend'](str)
 
     def __log(self, level, msg):
-        self.events['log'](level,msg)
+        self.events['log'](bot,level,msg)
 
     def sendMsg(self, channel, msg):
         self.__send('PRIVMSG %s :%s' % (channel, msg))
@@ -230,4 +230,4 @@ plug.load(bot)
 
 bot.run()
 
-plug.close()
+plug.close(bot)
