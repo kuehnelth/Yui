@@ -11,23 +11,60 @@ IrcMsg = namedtuple('IrcMsg', ['channel', 'user', 'msg', 'replyTo'])
 
 IrcServerCmd = namedtuple('IrcServerCmd', ['prefix', 'cmd', 'args'])
 
-onMsgEntry = namedtuple('onMsgEntry', ['match', 'func'])
-
-
 class Event(list):
     def __call__(self, *args, **kwargs):
         for handler in self:
             handler(*args, **kwargs)
 
+#loads all *.py in a given directory and calls their init() function
+#also looks in subdirs for .py files with the same name as the subdir and loads those
+#e.g. plugins/testplug/testplug.py if your plugin dir is "plugins"
+class PluginLoader(object):
+    def __init__(self, rootDir):
+        self.rootDir = rootDir
+        self.plugins = []
+
+    def __loadModule(self,filepath):
+        mod_name,file_ext = os.path.splitext(os.path.split(filepath)[-1])
+        if file_ext.lower() == '.py':
+            py_mod = imp.load_source(mod_name, filepath)
+        return py_mod
+
+
+    def load(self, *args, **kwargs):
+        for f in os.listdir(rootDir):
+            plugin = None
+            fullPath = os.path.join(rootDir,f)
+
+            #try to load plugins in subdirs
+            if os.path.isdir(fullPath):
+                module = os.path.join(fullPath,f) + ".py"
+                if os.path.isfile(module):
+                    plugin = self.__loadModule(module)
+            #load single-file plugins
+            elif fullPath.endswith('.py') and f != '__init__.py':
+                plugin = self.__loadModule(fullPath)
+
+            #check if the plugin contains an init() function
+            if plugin and callable(getattr(plugin, "init", None)):
+                plugin.init(*args,**kwargs)
+                self.plugins.append(plugin)
+
+    def close(self, *args, **kwargs):
+        for p in self.plugins:
+            if callable(getattr(p, "close", None)):
+                p.close(args, **kwargs)
+
+
 class IrcBot(object):
     def __init__(self):
-        self.server = ""
+        self.server = 'localhost'
         self.port = 6667
         self.ssl = False
-        self.nick = ""
-        self.user = ""
-        self.password = ""
-        self.owner = ""
+        self.nick = ''
+        self.user = ''
+        self.password = ''
+        self.owner = ''
         self.socket = None
         self.quitting = False
 
@@ -41,9 +78,11 @@ class IrcBot(object):
 
     def __send(self,str):
         #TODO: limit length!
+        try:
+            self.socket.send(str+'\r\n')
+        except Exception as ex:
+            self.__log('error', 'exception occurred sending data: %s' % repr(ex))
         self.events['rawSend'](str)
-        self.socket.send(str+'\r\n')
-        #TODO: error check
 
     def __log(self, level, msg):
         self.events['log'](level,msg)
@@ -52,18 +91,28 @@ class IrcBot(object):
         self.__send('PRIVMSG %s :%s' % (channel, msg))
 
     def setNick(self, nick):
+        if not nick:
+            self.__log('warning','tried setting nick to empty string')
+            return
         self.__send('NICK %s' % nick)
         self.nick = nick
 
     def join(self, channel):
+        if not channel:
+            self.__log('warning','tried joining channel without name')
+            return
         self.__send('JOIN %s' % channel)
 
     def part(self, channel):
+        if not channel:
+            self.__log('warning','tried parting from channel without name')
+            return
         self.__send('PART %s' % channel)
 
     def quit(self, reason):
         self.__send('QUIT :%s' % reason)
         self.quitting = True
+        self.__log('info', 'quit (%s)' % reason)
 
     #*inspired by* twisted's irc implementation
     def parseServerCmd(self,cmd):
@@ -106,8 +155,14 @@ class IrcBot(object):
         if self.ssl:
             self.socket = ssl.wrap_socket(self.socket)
 
-        self.socket.connect((self.server, self.port))
-        #TODO: error check
+        self.__log('info', 'connecting to %s:%d' % (self.server, self.port))
+        try:
+            self.socket.connect((self.server, self.port))
+        except Exception as ex:
+            self.__log('error','exception occured while trying to connect: %s' % repr(ex))
+            return False
+
+        self.__log('info','connected!')
 
         if self.password:
             self.__send('PASS %s' % self.password)
@@ -120,12 +175,12 @@ class IrcBot(object):
         return True
 
     def disconnect(self):
+        self.__log('info', 'disconnecting')
         if self.socket:
             self.socket.shutdown(socket.SHUT_RDWR)
             self.socket.close()
         else:
-            print "asd"
-            #TODO: log error
+            self.__log('warning', 'tried disconnecting while socket wasn\'t open')
 
     def run(self):
         while not self.quitting:
@@ -136,27 +191,19 @@ class IrcBot(object):
             while not self.quitting:
                 try:
                     recv += self.socket.recv(4098)
-                except Exception:
-                    print Exception.message
+                except Exception as ex:
+                    self.__log('error', 'exception occurred receiving data: %s' % repr(ex))
                     break
 
                 while '\r\n' in recv:
                     line, recv = recv.split('\r\n', 1)
+                    self.events['rawReceive'](line)
                     cmd = self.parseServerCmd(line)
                     if cmd:
                         self.handleCmd(cmd)
 
-
-
-def loadPlugin(filepath):
-    mod_name,file_ext = os.path.splitext(os.path.split(filepath)[-1])
-    if file_ext.lower() == '.py':
-        py_mod = imp.load_source(mod_name, filepath)
-    return py_mod
-
-
 optParser = optparse.OptionParser()
-optParser.add_option('-s', '--server', dest='host', action="store", default='')
+optParser.add_option('-s', '--server', dest='host', action="store", default='localhost')
 optParser.add_option('-P', '--port', dest='port', action="store", type="int", default=6667)
 optParser.add_option('-S', '--ssl', dest='ssl', action="store_true", default=False)
 optParser.add_option('-u', '--user', dest='user', action="store", default='')
@@ -178,26 +225,9 @@ bot.owner = options.owner
 rootDir = os.path.dirname(__file__)
 rootDir = os.path.join(rootDir, options.plugins)
 
-#load all *.py in plugins/
-#and all .py files in subdirs of it, if they have the same name as the dir
-#e.g. plugins/testplug/testplug.py
-plugins = []
-for f in os.listdir(rootDir):
-    plugin = None
-    fullPath = os.path.join(rootDir,f)
-    if os.path.isdir(fullPath):
-        module = os.path.join(fullPath,f) + ".py"
-        if os.path.isfile(module):
-            plugin = loadPlugin(module)
-    elif fullPath.endswith('.py') and f != '__init__.py':
-        plugin = loadPlugin(fullPath)
-    if plugin:
-        plugin.init(bot)
-        plugins.append(plugin)
-
+plug = PluginLoader(rootDir)
+plug.load(bot)
 
 bot.run()
 
-
-for p in plugins:
-    p.close()
+plug.close()
