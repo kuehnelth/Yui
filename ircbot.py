@@ -7,13 +7,17 @@ import time
 import optparse
 from collections import namedtuple
 
-IrcMsg = namedtuple('IrcMsg', ['channel', 'user', 'msg'])
+IrcMsg = namedtuple('IrcMsg', ['channel', 'user', 'msg', 'replyTo'])
 
 IrcServerCmd = namedtuple('IrcServerCmd', ['prefix', 'cmd', 'args'])
 
 onMsgEntry = namedtuple('onMsgEntry', ['match', 'func'])
 
 
+class Event(list):
+    def __call__(self, *args, **kwargs):
+        for handler in self:
+            handler(*args, **kwargs)
 
 class IrcBot(object):
     def __init__(self):
@@ -24,23 +28,25 @@ class IrcBot(object):
         self.user = ""
         self.password = ""
         self.owner = ""
-        self.onMsgHandlers = []
         self.socket = None
         self.quitting = False
 
+        self.events = {
+                'channelMessage' : Event(),
+                'log' : Event(),
+                'rawSend' : Event(),
+                'rawReceive' : Event(),
+                'ircCmd' : Event()
+                }
+
     def __send(self,str):
         #TODO: limit length!
-        print str
+        self.events['rawSend'](str)
         self.socket.send(str+'\r\n')
         #TODO: error check
 
-    def registerOnMsg(self, match, func):
-        self.onMsgHandlers.append(onMsgEntry(match,func))
-
-    def onMsg(self, msg):
-        for handler in self.onMsgHandlers:
-            if msg.msg.startswith(handler.match):
-                handler.func(self,msg)
+    def __log(self, level, msg):
+        self.events['log'](level,msg)
 
     def sendMsg(self, channel, msg):
         self.__send('PRIVMSG %s :%s' % (channel, msg))
@@ -77,11 +83,20 @@ class IrcBot(object):
         return IrcServerCmd(prefix, command, args)
 
     def handleCmd(self, cmd):
+        self.events['ircCmd'](cmd)
         if cmd.cmd == 'PING':
             self.__send('PONG :%s' % cmd.args[0])
         if cmd.cmd == 'PRIVMSG':
-            msg = IrcMsg(channel = cmd.args[0], user = cmd.prefix.split('!')[0], msg = cmd.args[1])
-            self.onMsg(msg)
+            channel = cmd.args[0]
+            reply = channel
+            user = cmd.prefix.split('!')[0]
+            if not reply.startswith('#'):
+                reply = user
+            msg = IrcMsg(channel = channel,
+                         user = user,
+                         msg = cmd.args[1],
+                         replyTo = reply)
+            self.events['channelMessage'](self,msg)
 
     def connect(self):
         if not self.user:
@@ -166,6 +181,7 @@ rootDir = os.path.join(rootDir, options.plugins)
 #load all *.py in plugins/
 #and all .py files in subdirs of it, if they have the same name as the dir
 #e.g. plugins/testplug/testplug.py
+plugins = []
 for f in os.listdir(rootDir):
     plugin = None
     fullPath = os.path.join(rootDir,f)
@@ -177,6 +193,11 @@ for f in os.listdir(rootDir):
         plugin = loadPlugin(fullPath)
     if plugin:
         plugin.init(bot)
+        plugins.append(plugin)
 
 
 bot.run()
+
+
+for p in plugins:
+    p.close()
