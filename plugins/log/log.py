@@ -3,7 +3,7 @@
 import os
 import datetime
 
-logDir = 'logs'
+logDir = ''
 logFile = None
 
 def log(bot,level,msg):
@@ -26,6 +26,11 @@ def log(bot,level,msg):
 
 
 def init(bot):
+    global logDir
+    logDir = os.path.dirname(__file__)
+    logDir = os.path.join(logDir, 'logs')
+    if not os.path.exists(logDir):
+        os.makedirs(logDir)
     bot.events['log'].append(log)
 
 def close(bot):
