@@ -25,8 +25,10 @@ def stor(bot, msg):
     isOwner = msg.user == bot.owner
 
     split = msg.msg.split(' ')
+
+    #recall random message
     if msg.msg.startswith('!rcl'):
-        tag = 'no_tag'
+        tag = 'no_tag' #default tag
         if len(split) > 1:
             tag = split[1]
         if tag not in storList or len(storList[tag]) < 1:
@@ -37,6 +39,7 @@ def stor(bot, msg):
             rcl = storList[tag][rnd]
             bot.sendMsg(msg.replyTo, 'Stored msg (%d/%d): %s' % (rnd+1,l,rcl))
 
+    #store one or more messages
     elif msg.msg.startswith('!sto'):
         #list tags and stors in them
         if len(split) < 2:
@@ -44,11 +47,12 @@ def stor(bot, msg):
             for t, i in storList.items():
                 l.append('%s (%d)' % (t, len(i)))
             bot.sendMsg(msg.replyTo, 'Tags: ' + ', '.join(l))
+        #add a message
         else:
             #figure out parameters
             tag = None
-            lineNr = 0
-            lineCnt = 1
+            lineNr = 0 #from which message (counting backwards through the log)
+            lineCnt = 1 #how many messages (counting forwards starting at lineNr)
             split.pop(0)
             strip = split[0].lstrip('-+')
             if not strip.isdigit():
@@ -92,6 +96,7 @@ def stor(bot, msg):
     bufferMsgs(msg)
 
 
+#load existing stored messages from disk
 def loadStors():
     global storDir
     global storList
@@ -110,16 +115,7 @@ def loadStors():
             except Exception as ex:
                 pass
 
-def getLinks(channel):
-    regex = r'(https?://\S+)'
-    links = []
-    global msgDeque
-    if not channel in msgDeque:
-        return []
-    for l in msgDeque[channel]:
-        links.append(re.findall(regex, l))
-    return links
-
+#store a message to a specified tag
 def addStor(tag, msg):
     global storList
     global storDir
