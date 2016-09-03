@@ -28,7 +28,7 @@ def stor(bot, msg):
 
     #recall random message
     if msg.msg.startswith('!rcl'):
-        tag = 'default' #default tag
+        tag = msg.channel #default tag to channel name
         if len(split) > 1:
             tag = split[1]
         if tag not in storList or len(storList[tag]) < 1:
@@ -45,12 +45,12 @@ def stor(bot, msg):
         if len(split) < 2:
             l = []
             for t, i in storList.items():
-                l.append('%s (%d)' % (t, len(i)))
+                l.append('%s(%d)' % (t, len(i)))
             bot.sendMsg(msg.replyTo, 'Tags: ' + ', '.join(l))
         #add a message
         else:
             #figure out parameters
-            tag = None
+            tag = msg.channel #default tag to channel name
             lineNr = 0 #from which message (counting backwards through the log)
             lineCnt = 1 #how many messages (counting forwards starting at lineNr)
             split.pop(0)
@@ -66,6 +66,11 @@ def stor(bot, msg):
                     lineCnt = int(split[0])
             except Exception as ex:
                 pass
+
+            #don't allow people to arbitrarily long stuff
+            if lineCnt > 10:
+                bot.sendMsg(msg.replyTo, "No.")
+                return
 
             #TODO: do something more optimised than copying the whole thing to a list...
             #(slicing doesn't work on deques)
@@ -119,8 +124,6 @@ def loadStors():
 def addStor(tag, msg):
     global storList
     global storDir
-    if not tag:
-        tag = 'default'
 
     try:
         file = open(os.path.join(storDir, tag) + '.txt', 'a')
