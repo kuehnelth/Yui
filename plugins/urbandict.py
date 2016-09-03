@@ -21,7 +21,7 @@ def ud(bot,msg):
             pass
 
         if not definition:
-            answer = 'Couldn\t find "%s" :(' % word
+            answer = 'Couldn\'t find "%s" :(' % word
         else:
             answer = '"%s": %s' % (word, definition)
         bot.sendMsg(msg.replyTo, answer)
