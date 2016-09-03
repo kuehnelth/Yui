@@ -76,6 +76,9 @@ class IrcBot(object):
                 'ircCmd' : Event()
                 }
 
+        #buffer outgoing channel message events
+        self.sendMsgBuff = []
+
     def __send(self,str):
         #TODO: limit length!
         try:
@@ -87,8 +90,19 @@ class IrcBot(object):
     def __log(self, level, msg):
         self.events['log'](bot,level,msg)
 
+    def __outgoingChannelMessages(self):
+        for m in self.sendMsgBuff:
+            self.events['channelMessage'](self,m)
+        self.sendMsgBuff[:] = [] #empty buffer
+
     def sendMsg(self, channel, msg):
         self.__send('PRIVMSG %s :%s' % (channel, msg))
+        #fire channelMessage event for outgoing messages
+        evMsg = IrcMsg(channel = channel,
+                        user = self.nick,
+                        msg = msg,
+                        replyTo = channel)
+        self.sendMsgBuff.append(evMsg)
 
     def setNick(self, nick):
         if not nick:
@@ -146,6 +160,7 @@ class IrcBot(object):
                          msg = cmd.args[1],
                          replyTo = reply)
             self.events['channelMessage'](self,msg)
+            self.__outgoingChannelMessages()
 
     def connect(self):
         if not self.user:
