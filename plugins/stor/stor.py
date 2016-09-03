@@ -28,7 +28,7 @@ def stor(bot, msg):
 
     #recall random message
     if msg.msg.startswith('!rcl'):
-        tag = 'no_tag' #default tag
+        tag = 'default' #default tag
         if len(split) > 1:
             tag = split[1]
         if tag not in storList or len(storList[tag]) < 1:
@@ -120,7 +120,7 @@ def addStor(tag, msg):
     global storList
     global storDir
     if not tag:
-        tag = 'no_tag'
+        tag = 'default'
 
     try:
         file = open(os.path.join(storDir, tag) + '.txt', 'a')
