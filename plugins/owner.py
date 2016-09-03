@@ -1,6 +1,11 @@
 #!/usr/bin/python
 
 def ownercmd(bot,msg):
+    if msg.msg.startswith('!owner'):
+        bot.sendMsg(msg.replyTo, 'I belong to %s' % bot.owner)
+        return
+
+    #owner-only commands below
     if msg.user != bot.owner:
         return
 
