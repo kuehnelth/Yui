@@ -3,6 +3,7 @@
 import os
 import collections
 import re
+import random
 
 storDir = ''
 storList = {}
@@ -21,16 +22,28 @@ def stor(bot, msg):
     global storList
     global storDir
 
-    if msg.msg.startswith('!sto'):
-        isOwner = msg.user == bot.owner
-        split = msg.msg.split(' ')
+    isOwner = msg.user == bot.owner
 
+    split = msg.msg.split(' ')
+    if msg.msg.startswith('!rcl'):
+        tag = 'no_tag'
+        if len(split) > 1:
+            tag = split[1]
+        if tag not in storList or len(storList[tag]) < 1:
+            bot.sendMsg(msg.replyTo, 'I have no memory of this')
+        else:
+            l = len(storList[tag])
+            rnd = random.randint(0,l-1)
+            rcl = storList[tag][rnd]
+            bot.sendMsg(msg.replyTo, 'Stored msg (%d/%d): %s' % (rnd+1,l,rcl))
+
+    elif msg.msg.startswith('!sto'):
         #list tags and stors in them
         if len(split) < 2:
             l = []
             for t, i in storList.items():
                 l.append('%s (%d)' % (t, len(i)))
-            bot.sendMsg(msg.replyTo, 'tags: ' + ', '.join(l))
+            bot.sendMsg(msg.replyTo, 'Tags: ' + ', '.join(l))
         else:
             #figure out parameters
             tag = None
@@ -59,7 +72,7 @@ def stor(bot, msg):
 
             #check line number boundaries
             if lineNr > len(lst) or lineCnt > lineNr:
-                bot.sendMsg(msg.replyTo, "I have no memory of this")
+                bot.sendMsg(msg.replyTo, 'I have no memory of this')
                 return
 
             #add line/link
@@ -73,7 +86,7 @@ def stor(bot, msg):
             #TODO: trim string if too long?
 
             addStor(tag, l)
-            bot.sendMsg(msg.replyTo, 'stored "%s"' % l)
+            bot.sendMsg(msg.replyTo, 'Stored "%s"' % l)
 
     #push the received message into the buffer
     bufferMsgs(msg)
