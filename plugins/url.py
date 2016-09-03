@@ -19,6 +19,10 @@ def getUrlTitle(url, enc=['utf8', 'shift-jis', 'euc-jp']):
                     pass
 
 def url(bot, msg):
+    #don't react to stuff sent by the bot
+    if msg.user == bot.nick:
+        return
+
     regex = r'(https?://\S+)'
     urls = re.findall(regex, msg.msg)
     for u in urls:
