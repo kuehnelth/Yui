@@ -11,12 +11,15 @@ def ud(bot,msg):
 
         word = split[1]
         definition = None
+        idx = 0
 
         try:
+            if len(split) > 2:
+                idx = int(split[2]) - 1
             url = 'http://api.urbandictionary.com/v0/define?term=%s' % word
             resp = urllib2.urlopen(url)
             js = json.loads(resp.read())
-            definition = js['list'][0]['definition']
+            definition = js['list'][idx]['definition']
         except Exception as ex:
             pass
 
