@@ -58,6 +58,11 @@ def stor(bot, msg):
             if not strip.isdigit():
                 tag = split[0]
                 split.pop(0)
+
+                #don't let people store things in some channel's specific tag
+                if tag.startswith('#'):
+                    bot.sendChannelMessage(msg.replyTo, "No.")
+                    return
             try:
                 if len(split) > 0:
                     lineNr = int(split[0].lstrip('-+'))
@@ -95,7 +100,7 @@ def stor(bot, msg):
             #TODO: trim string if too long?
 
             addStor(tag, l)
-            bot.sendChannelMessage(msg.replyTo, 'Stored "%s"' % l)
+            bot.sendChannelMessage(msg.replyTo, 'Stored [%s] "%s"' % (tag,l))
 
     #push the received message into the buffer
     bufferMsgs(msg)
