@@ -27,7 +27,10 @@ def ud(bot,msg):
             answer = 'Couldn\'t find "%s" :(' % word
         else:
             answer = '"%s": %s' % (word, definition)
-        bot.sendMsg(msg.replyTo, answer)
+        bot.sendChannelMessage(msg.replyTo, answer)
 
 def init(bot):
-    bot.events['channelMessage'].append(ud)
+    bot.events.register('channelMessage',ud)
+
+def close(bot):
+    bot.events.unregister('channelMessage',ud)

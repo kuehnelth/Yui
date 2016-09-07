@@ -32,12 +32,12 @@ def stor(bot, msg):
         if len(split) > 1:
             tag = split[1]
         if tag not in storList or len(storList[tag]) < 1:
-            bot.sendMsg(msg.replyTo, 'I have no memory of this')
+            bot.sendChannelMessage(msg.replyTo, 'I have no memory of this')
         else:
             l = len(storList[tag])
             rnd = random.randint(0,l-1)
             rcl = storList[tag][rnd]
-            bot.sendMsg(msg.replyTo, 'Stored msg (%d/%d): %s' % (rnd+1,l,rcl))
+            bot.sendChannelMessage(msg.replyTo, 'Stored msg (%d/%d): %s' % (rnd+1,l,rcl))
 
     #store one or more messages
     elif msg.msg.startswith('!sto'):
@@ -46,7 +46,7 @@ def stor(bot, msg):
             l = []
             for t, i in storList.items():
                 l.append('%s(%d)' % (t, len(i)))
-            bot.sendMsg(msg.replyTo, 'Tags: ' + ', '.join(l))
+            bot.sendChannelMessage(msg.replyTo, 'Tags: ' + ', '.join(l))
         #add a message
         else:
             #figure out parameters
@@ -69,7 +69,7 @@ def stor(bot, msg):
 
             #don't allow people to arbitrarily long stuff
             if lineCnt > 10:
-                bot.sendMsg(msg.replyTo, "No.")
+                bot.sendChannelMessage(msg.replyTo, "No.")
                 return
 
             #TODO: do something more optimised than copying the whole thing to a list...
@@ -81,7 +81,7 @@ def stor(bot, msg):
 
             #check line number boundaries
             if lineNr > len(lst) or lineCnt > lineNr:
-                bot.sendMsg(msg.replyTo, 'I have no memory of this')
+                bot.sendChannelMessage(msg.replyTo, 'I have no memory of this')
                 return
 
             #add line/link
@@ -95,7 +95,7 @@ def stor(bot, msg):
             #TODO: trim string if too long?
 
             addStor(tag, l)
-            bot.sendMsg(msg.replyTo, 'Stored "%s"' % l)
+            bot.sendChannelMessage(msg.replyTo, 'Stored "%s"' % l)
 
     #push the received message into the buffer
     bufferMsgs(msg)
@@ -143,5 +143,5 @@ def init(bot):
     if not os.path.exists(storDir):
         os.makedirs(storDir)
     loadStors()
-    bot.events['channelMessage'].append(stor)
+    bot.events.register('channelMessage',stor)
 

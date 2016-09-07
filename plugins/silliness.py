@@ -11,7 +11,10 @@ def sillyAnswers(bot,msg):
     if msg.msg.lower().startswith(botnick):
         suffix = msg.msg[len(botnick):]
         if not suffix or re.match(r'^[o<>/\\!\?\. ]+$',suffix) is not None:
-            bot.sendMsg(msg.replyTo, msg.user + suffix)
+            bot.sendChannelMessage(msg.replyTo, msg.user + suffix)
 
 def init(bot):
-    bot.events['channelMessage'].append(sillyAnswers)
+    bot.events.register('channelMessage',sillyAnswers)
+
+def close(bot):
+    bot.events.unregister('channelMessage',sillyAnswers)

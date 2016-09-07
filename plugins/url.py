@@ -28,9 +28,12 @@ def url(bot, msg):
     for u in urls:
         title = getUrlTitle(u)
         if not title:
-            title = 'no idea :('
-        bot.sendMsg(msg.replyTo, 'Title: %s' % title)
+            title = 'No idea :('
+        bot.sendChannelMessage(msg.replyTo, title)
 
 
 def init(bot):
-    bot.events['channelMessage'].append(url)
+    bot.events.register('channelMessage',url)
+
+def close(bot):
+    bot.events.unregister('channelMessage',url)

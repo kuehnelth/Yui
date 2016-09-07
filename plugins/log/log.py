@@ -31,9 +31,10 @@ def init(bot):
     logDir = os.path.join(logDir, 'logs')
     if not os.path.exists(logDir):
         os.makedirs(logDir)
-    bot.events['log'].append(log)
+    bot.events.register('log',log,0) #highest priority
 
 def close(bot):
+    bot.events.unregister('log',log)
     if logFile:
         logFile.close()
 
