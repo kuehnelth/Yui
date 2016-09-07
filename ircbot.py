@@ -260,7 +260,7 @@ class IrcBot(object):
                     recv += self.socket.recv(4098)
                 except Exception as ex:
                     self.log('error', 'exception occurred receiving data: %s' % repr(ex))
-                    break
+                    self.quitting = True
 
                 while '\r\n' in recv:
                     line, recv = recv.split('\r\n', 1)
