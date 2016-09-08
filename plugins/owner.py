@@ -26,7 +26,7 @@ def ownercmd(bot,msg):
     elif len(split) > 1 and split[0] == '!nick':
         bot.setNick(split[1])
     elif len(split) > 1 and split[0].startswith('!echo'):
-            split = split[1].split(' ')
+            split = split[1].split(' ', 1)
             if len(split) > 1:
                 bot.sendChannelMessage(split[0], split[1])
 
