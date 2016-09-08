@@ -104,7 +104,6 @@ def stor(bot, msg):
             bot.sendChannelMessage(msg.replyTo, 'Stored [%s] "%s"' % (tag,l))
 
     #push the received message into the buffer
-    print msg.msg
     bufferMsgs(msg)
 
 
