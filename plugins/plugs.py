@@ -1,4 +1,5 @@
 #!/usr/bin/python
+# -*- coding: utf-8 -*-
 
 def plugs(bot, msg):
     if msg.user != bot.owner:

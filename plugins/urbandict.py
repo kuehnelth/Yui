@@ -1,4 +1,6 @@
 #!/usr/bin/python
+# -*- coding: utf-8 -*-
+
 
 import urllib2
 import json
@@ -18,13 +20,16 @@ def ud(bot,msg):
                 idx = int(split[2]) - 1
             url = 'http://api.urbandictionary.com/v0/define?term=%s' % word
             resp = urllib2.urlopen(url)
-            js = json.loads(resp.read())
+            #get encoding
+            enc = resp.headers['content-type'].split('charset=')[-1]
+            content = unicode(resp.read(),enc)
+            js = json.loads(content)
             definition = js['list'][idx]['definition']
         except Exception as ex:
             pass
 
         if not definition:
-            answer = 'Couldn\'t find "%s" :(' % word
+            answer = 'No results for "%s" :(' % word
         else:
             answer = '"%s": %s' % (word, definition)
         bot.sendChannelMessage(msg.replyTo, answer)

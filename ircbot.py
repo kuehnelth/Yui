@@ -1,4 +1,5 @@
 #!/usr/bin/python
+# -*- coding: utf-8 -*-
 
 import imp
 import os
@@ -134,19 +135,19 @@ class IrcBot(object):
         self.events.register('preConnect');
 
     #send raw data to the server
-    def sendRaw(self,str):
+    def sendRaw(self,msg):
         #TODO: limit length!
         try:
-            self.socket.send(str+'\r\n')
+            self.socket.send(msg.encode('utf-8')+'\r\n')
         except Exception as ex:
-            self.log('error', 'exception occurred sending data: %s' % repr(ex))
-        self.events.fire('rawSend',bot,str)
+            self.log(u'error', u'exception occurred sending data: %s' % repr(ex))
+        self.events.fire('rawSend',bot,msg)
 
     def log(self, level, msg):
         self.events.fire('log',self,level,msg)
 
     def sendChannelMessage(self, channel, msg):
-        self.sendRaw('PRIVMSG %s :%s' % (channel, msg))
+        self.sendRaw(u'PRIVMSG %s :%s' % (channel, msg))
         #fire channelMessage event for outgoing messages
         evMsg = IrcMsg(channel = channel,
                         user = self.nick,
@@ -156,27 +157,27 @@ class IrcBot(object):
 
     def setNick(self, nick):
         if not nick:
-            self.log('warning','tried setting nick to empty string')
+            self.log(u'warning',u'tried setting nick to empty string')
             return
-        self.sendRaw('NICK %s' % nick)
+        self.sendRaw(u'NICK %s' % nick)
         self.nick = nick
 
     def join(self, channel):
         if not channel:
-            self.log('warning','tried joining channel without name')
+            self.log(u'warning',u'tried joining channel without name')
             return
-        self.sendRaw('JOIN %s' % channel)
+        self.sendRaw(u'JOIN %s' % channel)
 
     def part(self, channel):
         if not channel:
-            self.log('warning','tried parting from channel without name')
+            self.log(u'warning',u'tried parting from channel without name')
             return
-        self.sendRaw('PART %s' % channel)
+        self.sendRaw(u'PART %s' % channel)
 
     def quit(self, reason):
-        self.sendRaw('QUIT :%s' % reason)
+        self.sendRaw(u'QUIT :%s' % reason)
         self.quitting = True
-        self.log('info', 'quit (%s)' % reason)
+        self.log(u'info', u'quit (%s)' % reason)
 
     #*inspired by* twisted's irc implementation
     def parseServerCmd(self,cmd):
@@ -197,13 +198,13 @@ class IrcBot(object):
 
     def handleCmd(self, cmd):
         self.events.fire('ircCmd', self, cmd)
-        if cmd.cmd == 'PING':
-            self.sendRaw('PONG :%s' % cmd.args[0])
-        if cmd.cmd == 'PRIVMSG':
+        if cmd.cmd == u'PING':
+            self.sendRaw(u'PONG :%s' % cmd.args[0])
+        if cmd.cmd == u'PRIVMSG':
             channel = cmd.args[0]
             reply = channel
-            user = cmd.prefix.split('!')[0]
-            if not reply.startswith('#'):
+            user = cmd.prefix.split(u'!')[0]
+            if not reply.startswith(u'#'):
                 reply = user
             msg = IrcMsg(channel = channel,
                          user = user,
@@ -219,14 +220,14 @@ class IrcBot(object):
         if self.ssl:
             self.socket = ssl.wrap_socket(self.socket)
 
-        self.log('info', 'connecting to %s:%d' % (self.server, self.port))
+        self.log(u'info', u'connecting to %s:%d' % (self.server, self.port))
         try:
             self.socket.connect((self.server, self.port))
         except Exception as ex:
-            self.log('error','exception occured while trying to connect: %s' % repr(ex))
+            self.log(u'error',u'exception occured while trying to connect: %s' % repr(ex))
             return False
 
-        self.log('info','connected!')
+        self.log(u'info',u'connected!')
 
         if self.password:
             self.sendRaw('PASS %s' % self.password)
@@ -234,17 +235,17 @@ class IrcBot(object):
         if not self.nick:
             self.nick = self.user
         self.setNick(self.nick)
-        self.sendRaw('USER %s 8 * :teh bot' % self.user)
+        self.sendRaw('USER %s 0 * :teh bot' % self.user)
 
         return True
 
     def disconnect(self):
-        self.log('info', 'disconnecting')
+        self.log(u'info', u'disconnecting')
         if self.socket:
             self.socket.shutdown(socket.SHUT_RDWR)
             self.socket.close()
         else:
-            self.log('warning', 'tried disconnecting while socket wasn\'t open')
+            self.log(u'warning', u'tried disconnecting while socket wasn\'t open')
 
     def run(self):
         #load all plugins
@@ -254,16 +255,16 @@ class IrcBot(object):
             while not self.connect():
                 time.sleep(30)
 
-            recv = ''
+            recv = u''
             while not self.quitting:
                 try:
-                    recv += self.socket.recv(4098)
+                    recv += self.socket.recv(4098).decode('utf-8')
                 except Exception as ex:
-                    self.log('error', 'exception occurred receiving data: %s' % repr(ex))
+                    self.log(u'error', u'exception occurred receiving data: %s' % repr(ex))
                     self.quitting = True
 
-                while '\r\n' in recv:
-                    line, recv = recv.split('\r\n', 1)
+                while u'\r\n' in recv:
+                    line, recv = recv.split(u'\r\n', 1)
                     self.events.fire('rawReceive', self, line)
                     cmd = self.parseServerCmd(line)
                     if cmd:

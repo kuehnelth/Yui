@@ -1,4 +1,5 @@
 #!/usr/bin/python
+# -*- coding: utf-8 -*-
 
 import os
 import collections
@@ -12,8 +13,8 @@ msgDeque = {}
 
 def bufferMsgs(msg):
     global msgDeque
-    chan = msg.channel
-    text = '<%s> %s' % (msg.user, msg.msg)
+    chan = msg.replyTo
+    text = u'<%s> %s' % (msg.user, msg.msg)
     if chan not in msgDeque:
         msgDeque[chan] = collections.deque(maxlen=200)
     msgDeque[chan].append(text)
@@ -32,12 +33,12 @@ def stor(bot, msg):
         if len(split) > 1:
             tag = split[1]
         if tag not in storList or len(storList[tag]) < 1:
-            bot.sendChannelMessage(msg.replyTo, 'I have no memory of this')
+            bot.sendChannelMessage(msg.replyTo, u'I have no memory of this')
         else:
             l = len(storList[tag])
             rnd = random.randint(0,l-1)
             rcl = storList[tag][rnd]
-            bot.sendChannelMessage(msg.replyTo, 'Stored msg (%d/%d): %s' % (rnd+1,l,rcl))
+            bot.sendChannelMessage(msg.replyTo, u'Stored msg (%d/%d): %s' % (rnd+1,l,rcl))
 
     #store one or more messages
     elif msg.msg.startswith('!sto'):
@@ -45,8 +46,8 @@ def stor(bot, msg):
         if len(split) < 2:
             l = []
             for t, i in storList.items():
-                l.append('%s(%d)' % (t, len(i)))
-            bot.sendChannelMessage(msg.replyTo, 'Tags: ' + ', '.join(l))
+                l.append(u'%s(%d)' % (t, len(i)))
+            bot.sendChannelMessage(msg.replyTo, u'Tags: ' + ', '.join(l))
         #add a message
         else:
             #figure out parameters
@@ -61,7 +62,7 @@ def stor(bot, msg):
 
                 #don't let people store things in some channel's specific tag
                 if tag.startswith('#'):
-                    bot.sendChannelMessage(msg.replyTo, "No.")
+                    bot.sendChannelMessage(msg.replyTo, u'No.')
                     return
             try:
                 if len(split) > 0:
@@ -74,7 +75,7 @@ def stor(bot, msg):
 
             #don't allow people to arbitrarily long stuff
             if lineCnt > 10:
-                bot.sendChannelMessage(msg.replyTo, "No.")
+                bot.sendChannelMessage(msg.replyTo, u'No.')
                 return
 
             #TODO: do something more optimised than copying the whole thing to a list...
@@ -86,7 +87,7 @@ def stor(bot, msg):
 
             #check line number boundaries
             if lineNr > len(lst) or lineCnt > lineNr:
-                bot.sendChannelMessage(msg.replyTo, 'I have no memory of this')
+                bot.sendChannelMessage(msg.replyTo, u'I have no memory of this')
                 return
 
             #add line/link
@@ -103,6 +104,7 @@ def stor(bot, msg):
             bot.sendChannelMessage(msg.replyTo, 'Stored [%s] "%s"' % (tag,l))
 
     #push the received message into the buffer
+    print msg.msg
     bufferMsgs(msg)
 
 
@@ -150,3 +152,5 @@ def init(bot):
     loadStors()
     bot.events.register('channelMessage',stor)
 
+def close(bot):
+    bot.events.unregister('channelMessage', stor)

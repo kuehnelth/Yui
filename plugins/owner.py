@@ -1,4 +1,5 @@
 #!/usr/bin/python
+# -*- coding: utf-8 -*-
 
 def ownercmd(bot,msg):
     if msg.msg.startswith('!owner'):
