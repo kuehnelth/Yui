@@ -107,8 +107,9 @@ class PluginLoader(object):
         return False
 
     def unloadAll(self, *args, **kwargs):
-        for n, p in self.plugins:
-            self.close(n, *args, **kwargs)
+        plugs = self.plugins.keys()
+        for name in plugs:
+            self.unload(name, *args, **kwargs)
 
 
 
