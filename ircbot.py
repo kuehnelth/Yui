@@ -52,9 +52,10 @@ class EventManager(list):
         #push current event onto queue and process it, and all further added events
         self.__eventBuffer.append((eventName, args, kwargs))
         while len(self.__eventBuffer) > 0:
-            en, a, kwa = self.__eventBuffer.popleft()
-            for prio, func in self.events[eventName]:
+            en, a, kwa = self.__eventBuffer[0]
+            for prio, func in self.events[en]:
                 func(*a, **kwa)
+            self.__eventBuffer.popleft()
 
 class PluginLoader(object):
     #root: root dir for plugins
