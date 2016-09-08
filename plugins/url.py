@@ -12,7 +12,7 @@ def getUrlTitle(url, enc=['utf8', 'shift-jis', 'euc-jp']):
         content = ''
         if 'content-type' in resp.headers:
             enc.append(resp.headers['content-type'].split('charset=')[-1])
-        content = resp.read(1024*2)
+        content = resp.read(1024*16)
         title = re.findall(regex, content, re.IGNORECASE)
     except Exception as ex:
         return None
