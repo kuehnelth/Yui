@@ -36,7 +36,6 @@ def url(bot, msg):
         #don't say anything, if we can't figure out the title
         if not title:
             return
-        print repr(title)
         bot.sendChannelMessage(msg.replyTo, title)
 
 
