@@ -37,7 +37,7 @@ def racron(bot, msg):
                 if args[arg] in rules:
                     rule = rules[args[arg]]
                 else:
-                    stdout.write(args[arg] + ' ')
+                    str += args[arg] + ' '
                     continue;
             cur = con.cursor()
             cur.execute("SELECT LOWER(word) FROM entries WHERE LOWER(word) LIKE '"+c+"%' "+rule+" ORDER BY RANDOM() LIMIT 1;")
