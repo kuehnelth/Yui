@@ -126,8 +126,9 @@ class IrcBot(object):
         self.socket = None
         self.quitting = False
 
-        self.pluginLoader = PluginLoader('plugins')
+        self.plugins = PluginLoader('plugins')
 
+        #register some events
         self.events = EventManager()
         self.events.register('channelMessage');
         self.events.register('log');
@@ -143,7 +144,9 @@ class IrcBot(object):
             self.socket.send(msg.encode('utf-8')+'\r\n')
         except Exception as ex:
             self.log(u'error', u'exception occurred sending data: %s' % repr(ex))
+            return False
         self.events.fire('rawSend',bot,msg)
+        return True
 
     def log(self, level, msg):
         self.events.fire('log',self,level,msg)
@@ -160,21 +163,24 @@ class IrcBot(object):
     def setNick(self, nick):
         if not nick:
             self.log(u'warning',u'tried setting nick to empty string')
-            return
+            return False
         self.sendRaw(u'NICK %s' % nick)
         self.nick = nick
+        return True
 
     def join(self, channel):
         if not channel:
             self.log(u'warning',u'tried joining channel without name')
-            return
+            return False
         self.sendRaw(u'JOIN %s' % channel)
+        return True
 
     def part(self, channel):
         if not channel:
             self.log(u'warning',u'tried parting from channel without name')
-            return
+            return False
         self.sendRaw(u'PART %s' % channel)
+        return True
 
     def quit(self, reason):
         self.sendRaw(u'QUIT :%s' % reason)
@@ -251,7 +257,11 @@ class IrcBot(object):
 
     def run(self):
         #load all plugins
-        self.pluginLoader.loadAll(self)
+        try:
+            self.plugins.loadAll(self)
+        except Exception as ex:
+            self.log(u'fatal', u'Exception occurred while loading plugins: %s' % repr(ex))
+            return False
 
         while not self.quitting:
             while not self.connect():
@@ -262,7 +272,7 @@ class IrcBot(object):
                 try:
                     recv += self.socket.recv(4098).decode('utf-8')
                 except Exception as ex:
-                    self.log(u'error', u'exception occurred receiving data: %s' % repr(ex))
+                    self.log(u'fatal', u'exception occurred receiving data: %s' % repr(ex))
                     self.quitting = True
 
                 while u'\r\n' in recv:
@@ -273,8 +283,11 @@ class IrcBot(object):
                         self.handleCmd(cmd)
 
         #unload all plugins before quitting
-        self.pluginLoader.unloadAll(self)
+        self.plugins.unloadAll(self)
+        return True
 
+#ugly commandline parsing
+#TODO: replace this with a config file or something
 optParser = optparse.OptionParser()
 optParser.add_option('-s', '--server', dest='host', action="store", default='localhost')
 optParser.add_option('-P', '--port', dest='port', action="store", type="int", default=6667)
@@ -294,11 +307,9 @@ bot.nick = options.nick
 bot.user = options.user
 bot.password = options.password
 bot.owner = options.owner
-bot.pluginLoader.rootDir = options.plugins
+bot.plugins.rootDir = options.plugins
 
 rootDir = os.path.dirname(__file__)
 rootDir = os.path.join(rootDir, options.plugins)
 
-
 bot.run()
-
