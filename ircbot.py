@@ -157,7 +157,7 @@ class IrcBot(object):
         try:
             self.socket.send(msg.encode('utf-8')+'\r\n')
         except TypeError as ex:
-            self.log(u'error', u'exception occurred sending data: %s' % repr(ex))
+            self.log(u'error', u'Exception occurred sending data: %s' % repr(ex))
             return False
         self.fireEvent('rawSend',bot,msg)
         return True
@@ -188,7 +188,7 @@ class IrcBot(object):
     #set the nick
     def setNick(self, nick):
         if not nick:
-            self.log(u'warning',u'tried setting nick to empty string')
+            self.log(u'warning',u'Tried setting nick to empty string')
             return False
         self.sendRaw(u'NICK %s' % nick)
         self.nick = nick
@@ -197,7 +197,7 @@ class IrcBot(object):
     #join a channel
     def join(self, channel):
         if not channel:
-            self.log(u'warning',u'tried joining channel without name')
+            self.log(u'warning',u'Tried joining channel without name')
             return False
         self.sendRaw(u'JOIN %s' % channel)
         return True
@@ -205,7 +205,7 @@ class IrcBot(object):
     #leave a channel
     def part(self, channel):
         if not channel:
-            self.log(u'warning',u'tried parting from channel without name')
+            self.log(u'warning',u'Tried parting from channel without name')
             return False
         self.sendRaw(u'PART %s' % channel)
         return True
@@ -215,7 +215,7 @@ class IrcBot(object):
     def quit(self, reason):
         self.sendRaw(u'QUIT :%s' % reason)
         self.quitting = True
-        self.log(u'info', u'quit (%s)' % reason)
+        self.log(u'info', u'Quit (%s)' % reason)
 
     #parse a command received from the server and split it into manageable parts
     #*inspired by* twisted's irc implementation
@@ -270,15 +270,15 @@ class IrcBot(object):
         if self.ssl:
             self.socket = ssl.wrap_socket(self.socket)
 
-        self.log(u'info', u'connecting to %s:%d' % (self.server, self.port))
+        self.log(u'info', u'Connecting to %s:%d' % (self.server, self.port))
 
         try:
             self.socket.connect((self.server, self.port))
         except Exception as ex:
-            self.log(u'error',u'exception occured while trying to connect: %s' % repr(ex))
+            self.log(u'error',u'Exception occured while trying to connect: %s' % repr(ex))
             return False
 
-        self.log(u'info',u'connected!')
+        self.log(u'info',u'Connected!')
 
         if self.password:
             self.sendRaw('PASS %s' % self.password)
@@ -293,12 +293,12 @@ class IrcBot(object):
 
     #disconnect the socket
     def disconnect(self):
-        self.log(u'info', u'disconnecting')
+        self.log(u'info', u'Disconnecting')
         if self.socket:
             self.socket.shutdown(socket.SHUT_RDWR)
             self.socket.close()
         else:
-            self.log(u'warning', u'tried disconnecting while socket wasn\'t open')
+            self.log(u'warning', u'Tried disconnecting while socket wasn\'t open')
 
     #main loop
     #
@@ -320,7 +320,7 @@ class IrcBot(object):
                 try:
                     recv += self.socket.recv(4098).decode('utf-8')
                 except Exception as ex:
-                    self.log(u'error', u'exception occurred receiving data: %s' % repr(ex))
+                    self.log(u'error', u'Exception occurred receiving data: %s' % repr(ex))
                     break #break inner loop, try to reconnect
 
                 while u'\r\n' in recv:
