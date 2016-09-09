@@ -3,7 +3,10 @@
 
 def ownercmd(bot,msg):
     if msg.msg.startswith('!owner'):
-        bot.sendChannelMessage(msg.replyTo, 'I belong to %s' % bot.owner)
+        bot.sendChannelMessage(msg.replyTo, u'I belong to %s' % bot.owner)
+        return
+    if msg.msg.startswith('!source'):
+        bot.sendChannelMessage(msg.replyTo, u'https://github.com/Rj48/ircbot')
         return
 
     #owner-only commands below
