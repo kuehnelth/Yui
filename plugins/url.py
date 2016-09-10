@@ -45,8 +45,10 @@ def getUrlTitle(url, enc=['utf8', 'shift-jis', 'ISO-8859', 'Windows-1251', 'euc-
         #if 'content-type' in resp.headers:
         #    enc.insert(0,enc.append(resp.headers['content-type'].split('charset=')[-1]))
 
-        for line in resp:
-            parser.feed(line)
+        #read in chunks, up to 1mb
+        chunkSize = 1024
+        for i in range(0, 1024*1024*1024, chunkSize):
+            parser.feed(resp.read(chunkSize))
             if parser.done:
                 title = parser.title
                 break
