@@ -8,9 +8,10 @@ def plugs(bot, msg):
     if len(split) < 2:
         return;
 
+    plugName = split[1]
+
     #(re)load plugin
     if split[0] == '!plug':
-        plugName = split[1]
         try:
             if bot.plugins.load(plugName,bot):
                 bot.sendChannelMessage(msg.replyTo, 'Loaded %s' % plugName)
