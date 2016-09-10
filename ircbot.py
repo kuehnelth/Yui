@@ -6,6 +6,7 @@ import os
 import socket, ssl
 import time
 import optparse
+import re
 from collections import namedtuple
 from collections import deque
 
@@ -153,9 +154,18 @@ class IrcBot(object):
 
     #send a raw line to the server
     def sendRaw(self,msg):
-        #TODO: limit length!
         try:
-            self.socket.send(msg.encode('utf-8')+'\r\n')
+            #strip newlines
+            badChars = u'\r\n'
+            stripped = re.sub(u'['+badChars+']+', '', msg)
+
+            utf8 = stripped.encode('utf-8')
+
+            #clamp length
+            if utf8 > 400:
+                utf8 = utf8[:400]
+
+            self.socket.send(utf8+'\r\n')
         except TypeError as ex:
             self.log(u'error', u'Exception occurred sending data: %s' % repr(ex))
             return False
