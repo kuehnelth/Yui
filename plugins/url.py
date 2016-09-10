@@ -39,7 +39,7 @@ def getUrlTitle(url, enc=['utf8', 'shift-jis', 'ISO-8859', 'Windows-1251', 'euc-
     title = ''
     parser = TitleParser()
     try:
-        resp = urllib2.urlopen(url)
+        resp = urllib2.urlopen(url, timeout=5)
 
         #try the charset set in the html header first, if there is one
         #if 'content-type' in resp.headers:
@@ -74,12 +74,27 @@ def url(bot, msg):
     #find urls in channel message
     regex = r'(https?://\S+)'
     urls = re.findall(regex, msg.msg)
+    titles = []
+    maxUrls = 5
+    foundTitle = False
     for u in urls:
+        maxUrls -= 1
+        if maxUrls == 0:
+            break
+
         title = getUrlTitle(u)
-        #don't say anything, if we can't figure out the title
-        if not title:
-            return
-        bot.sendChannelMessage(msg.replyTo, title)
+        if title:
+            titles.append('"%s"' % title)
+            foundTitle = True
+        else:
+            titles.append('[no title]')
+
+
+
+    #don't say anything, if we couldn't get any titles
+    if foundTitle:
+        concat = ', '.join(titles)
+        bot.sendChannelMessage(msg.replyTo, concat)
 
 
 def init(bot):
