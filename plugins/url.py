@@ -36,7 +36,7 @@ class TitleParser(HTMLParser):
 
 
 def getUrlTitle(url, enc=['utf8', 'shift-jis', 'ISO-8859', 'Windows-1251', 'euc-jp']):
-    title = ''
+    title = None
     parser = TitleParser()
     try:
         resp = urllib2.urlopen(url, timeout=5)
@@ -66,30 +66,35 @@ def getUrlTitle(url, enc=['utf8', 'shift-jis', 'ISO-8859', 'Windows-1251', 'euc-
                     pass
         return title
 
+#returns true, if it's a http(s) url pointing to something, that isn't an ip
+def isValidUrl(url):
+    scheme, netloc, path, params, query, fragment = urllib2.urlparse.urlparse(url)
+    if (scheme == 'http' or scheme == 'https') and netloc and netloc != 'localhost' and not netloc.split('.')[-1].isdigit():
+        return True
+    return False
+
 def url(bot, msg):
     #don't react to stuff sent by the bot
     if msg.user == bot.nick:
         return
 
     #find urls in channel message
-    regex = r'(https?://\S+)'
-    urls = re.findall(regex, msg.msg)
+    words = msg.msg.split(' ')
     titles = []
     maxUrls = 5
     foundTitle = False
-    for u in urls:
+    for w in words:
         maxUrls -= 1
         if maxUrls == 0:
             break
 
-        title = getUrlTitle(u)
-        if title:
-            titles.append('"%s"' % title)
-            foundTitle = True
-        else:
-            titles.append('[no title]')
-
-
+        if isValidUrl(w):
+            title = getUrlTitle(w)
+            if title:
+                titles.append('"%s"' % title)
+                foundTitle = True
+            else:
+                titles.append('[no title]')
 
     #don't say anything, if we couldn't get any titles
     if foundTitle:
