@@ -37,7 +37,9 @@ class TitleParser(HTMLParser):
 def urlEncodeNonAscii(string):
     return re.sub('[\x80-\xFF]', lambda c: '%%%02x' % ord(c.group(0)), string)
 
-def getUrlTitle(url, enc=['utf8', 'shift-jis', 'ISO-8859', 'Windows-1251', 'euc-jp']):
+#returns a properly encoded url (escaped unicode etc)
+#or None if it's not a valid url
+def getEncodedUrl(url):
     #test if it's a valid URL and encode it properly, if it is
     parts = urllib2.urlparse.urlparse(url)
     if not ((parts[0] == 'http' or parts[0] == 'https') and parts[1] and parts[1] != 'localhost' and not parts[1].split('.')[-1].isdigit()):
@@ -48,7 +50,9 @@ def getUrlTitle(url, enc=['utf8', 'shift-jis', 'ISO-8859', 'Windows-1251', 'euc-
             p.encode('idna') if i == 1 else urlEncodeNonAscii(p.encode('utf-8'))
             for i, p in enumerate(parts)
     )
+    return url
 
+def getUrlTitle(url, enc=['utf8', 'shift-jis', 'ISO-8859', 'Windows-1251', 'euc-jp']):
     title = None
     parser = TitleParser()
     try:
@@ -91,11 +95,15 @@ def url(bot, msg):
     maxUrls = 5
     foundTitle = False
     for w in words:
+        url = getEncodedUrl(w)
+        if not url:
+            continue
+
         maxUrls -= 1
         if maxUrls == 0:
             break
 
-        title = getUrlTitle(w)
+        title = getUrlTitle(url)
         if title:
             titles.append('"%s"' % title)
             foundTitle = True
