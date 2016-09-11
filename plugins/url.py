@@ -34,8 +34,21 @@ class TitleParser(HTMLParser):
         if self.reading:
             self.title += '&%s;' % ref
 
+def urlEncodeNonAscii(string):
+    return re.sub('[\x80-\xFF]', lambda c: '%%%02x' % ord(c.group(0)), string)
 
 def getUrlTitle(url, enc=['utf8', 'shift-jis', 'ISO-8859', 'Windows-1251', 'euc-jp']):
+    #test if it's a valid URL and encode it properly, if it is
+    parts = urllib2.urlparse.urlparse(url)
+    if not ((parts[0] == 'http' or parts[0] == 'https') and parts[1] and parts[1] != 'localhost' and not parts[1].split('.')[-1].isdigit()):
+        return None
+
+    #handle unicode URLs
+    url = urllib2.urlparse.urlunparse(
+            p.encode('idna') if i == 1 else urlEncodeNonAscii(p.encode('utf-8'))
+            for i, p in enumerate(parts)
+    )
+
     title = None
     parser = TitleParser()
     try:
@@ -48,7 +61,8 @@ def getUrlTitle(url, enc=['utf8', 'shift-jis', 'ISO-8859', 'Windows-1251', 'euc-
         #read in chunks, up to 1mb
         chunkSize = 1024
         for i in range(0, 1024*1024*1024, chunkSize):
-            parser.feed(resp.read(chunkSize))
+            chunk = resp.read(chunkSize)
+            parser.feed(chunk)
             if parser.done:
                 title = parser.title
                 break
@@ -66,13 +80,6 @@ def getUrlTitle(url, enc=['utf8', 'shift-jis', 'ISO-8859', 'Windows-1251', 'euc-
                     pass
         return title
 
-#returns true, if it's a http(s) url pointing to something, that isn't an ip
-def isValidUrl(url):
-    scheme, netloc, path, params, query, fragment = urllib2.urlparse.urlparse(url)
-    if (scheme == 'http' or scheme == 'https') and netloc and netloc != 'localhost' and not netloc.split('.')[-1].isdigit():
-        return True
-    return False
-
 def url(bot, msg):
     #don't react to stuff sent by the bot
     if msg.user == bot.nick:
@@ -88,13 +95,12 @@ def url(bot, msg):
         if maxUrls == 0:
             break
 
-        if isValidUrl(w):
-            title = getUrlTitle(w)
-            if title:
-                titles.append('"%s"' % title)
-                foundTitle = True
-            else:
-                titles.append('[no title]')
+        title = getUrlTitle(w)
+        if title:
+            titles.append('"%s"' % title)
+            foundTitle = True
+        else:
+            titles.append('[no title]')
 
     #don't say anything, if we couldn't get any titles
     if foundTitle:
