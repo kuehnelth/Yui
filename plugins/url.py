@@ -105,6 +105,7 @@ def url(bot, msg):
 
         title = getUrlTitle(url)
         if title:
+            title = ' '.join(title.split()) #remove leading/trailing spaces, reduce repeated spaces to just one
             titles.append('"%s"' % title)
             foundTitle = True
         else:
