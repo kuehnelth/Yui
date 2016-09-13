@@ -121,7 +121,6 @@ def addQuote(bot, msg):
 
 
 def quote(bot, msg):
-    printQuote(bot,msg)
     addQuote(bot,msg)
 
     #push the received message into the buffer
