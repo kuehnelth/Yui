@@ -83,6 +83,7 @@ class PluginLoader(object):
     #if a path to a directory is given, it tries to load a .py file in that,
     #if it has the same name as the dir
     def load(self, name, *args, **kwargs):
+        name = os.path.basename(name)
         filepath = os.path.join(self.rootDir, name)
 
         #try to load plugin in subdir
