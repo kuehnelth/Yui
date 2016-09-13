@@ -13,7 +13,6 @@ msgDeque = {}
 
 def bufferMsgs(msg):
     global msgDeque
-    print u'<%s> %s' % (msg.user, msg.msg)
     chan = msg.replyTo
     text = u'<%s> %s' % (msg.user, msg.msg)
     if chan not in msgDeque:
