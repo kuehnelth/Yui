@@ -9,7 +9,7 @@ import re
 #if that's the case, the bot answers the same back to whomever mentioned him
 def sillyAnswers(bot,msg):
     botnick = bot.nick.lower()
-    if msg.msg.lower().startswith(botnick):
+    if msg.msg.lower().startswith(botnick) and msg.user.lower() != botnick:
         suffix = msg.msg[len(botnick):]
         if not suffix or re.match(r'^[o<>/\\!\?\. ]+$',suffix) is not None:
             bot.sendChannelMessage(msg.replyTo, msg.user + suffix)
