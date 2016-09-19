@@ -53,7 +53,7 @@ def getEncodedUrl(url):
     return url
 
 def getUrlTitle(url, enc=['utf8', 'shift-jis', 'ISO-8859', 'Windows-1251', 'euc-jp']):
-    title = None
+    title = ''
     parser = TitleParser()
     try:
         resp = urllib2.urlopen(url, timeout=5)
