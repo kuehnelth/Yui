@@ -85,10 +85,6 @@ def getUrlTitle(url, enc=['utf8', 'shift-jis', 'ISO-8859', 'Windows-1251', 'euc-
         return title
 
 def url(bot, msg):
-    #don't react to stuff sent by the bot
-    if msg.user == bot.nick:
-        return
-
     #find urls in channel message
     words = msg.msg.split(' ')
     titles = []
@@ -118,7 +114,7 @@ def url(bot, msg):
 
 
 def init(bot):
-    bot.events.register('channelMessage',url)
+    bot.events.register('channelMessageReceive',url)
 
 def close(bot):
-    bot.events.unregister('channelMessage',url)
+    bot.events.unregister('channelMessageReceive',url)

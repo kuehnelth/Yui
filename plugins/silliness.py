@@ -5,7 +5,7 @@ import re
 
 #responds to any message starting with the bot's nick
 #and otherwise only contains spaces or the caracters <>!?.o
-#which allows for some silly things like \o/ or >.< or !?!?!
+#which allows for some things like \o/ or >.< or !?!?!
 #if that's the case, the bot answers the same back to whomever mentioned him
 def sillyAnswers(bot,msg):
     botnick = bot.nick.lower()
@@ -15,7 +15,7 @@ def sillyAnswers(bot,msg):
             bot.sendChannelMessage(msg.replyTo, msg.user + suffix)
 
 def init(bot):
-    bot.events.register('channelMessage',sillyAnswers)
+    bot.events.register('channelMessageReceive',sillyAnswers)
 
 def close(bot):
-    bot.events.unregister('channelMessage',sillyAnswers)
+    bot.events.unregister('channelMessageReceive',sillyAnswers)

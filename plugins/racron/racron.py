@@ -48,7 +48,7 @@ def racron(bot, msg):
 
 
 def init(bot):
-    bot.events.register('channelMessage',racron)
+    bot.events.register('channelMessageReceive',racron)
 
 def close(bot):
-    bot.events.unregister('channelMessage',racron)
+    bot.events.unregister('channelMessageReceive',racron)

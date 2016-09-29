@@ -146,7 +146,8 @@ class IrcBot(object):
 
         #register some events
         self.events = EventManager()
-        self.events.register('channelMessage');
+        self.events.register('channelMessageSend');
+        self.events.register('channelMessageReceive');
         self.events.register('log');
         self.events.register('rawSend');
         self.events.register('rawReceive');
@@ -194,7 +195,7 @@ class IrcBot(object):
                         user = self.nick,
                         msg = msg,
                         replyTo = channel)
-        self.fireEvent('channelMessage',self,evMsg)
+        self.fireEvent('channelMessageSend',self,evMsg)
 
     #set the nick
     def setNick(self, nick):
@@ -266,7 +267,7 @@ class IrcBot(object):
                          user = user,
                          msg = cmd.args[1],
                          replyTo = reply)
-            self.fireEvent('channelMessage',self,msg)
+            self.fireEvent('channelMessageReceive',self,msg)
 
     #try to connect to a server
     #TODO: handle failed self.sendRaw calls somehow?

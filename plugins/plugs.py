@@ -35,7 +35,7 @@ def plugs(bot, msg):
         bot.sendChannelMessage(msg.replyTo, 'Couldn\'t unload %s' % plugName)
 
 def init(bot):
-    bot.events.register('channelMessage',plugs)
+    bot.events.register('channelMessageReceive',plugs)
 
 def close(bot):
-    bot.events.unregister('channelMessage',plugs)
+    bot.events.unregister('channelMessageReceive',plugs)

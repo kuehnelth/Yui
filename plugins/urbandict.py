@@ -20,7 +20,7 @@ def utf_8_encoder(unicode_csv_data):
         yield line.encode('utf-8')
 
 def ud(bot,msg):
-    if not msg.msg.startswith('!ud ') or msg.user == bot.nick:
+    if not msg.msg.startswith('!ud '):
         return
 
     #split = msg.msg.split(' ')
@@ -52,7 +52,7 @@ def ud(bot,msg):
     bot.sendChannelMessage(msg.replyTo, answer)
 
 def init(bot):
-    bot.events.register('channelMessage',ud)
+    bot.events.register('channelMessageReceive',ud)
 
 def close(bot):
-    bot.events.unregister('channelMessage',ud)
+    bot.events.unregister('channelMessageReceive',ud)

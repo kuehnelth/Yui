@@ -5,6 +5,7 @@ def ownercmd(bot,msg):
     if msg.msg.startswith('!owner'):
         bot.sendChannelMessage(msg.replyTo, u'I belong to %s' % bot.owner)
         return
+
     if msg.msg.startswith('!source'):
         bot.sendChannelMessage(msg.replyTo, u'https://github.com/Rj48/ircbot')
         return
@@ -39,7 +40,7 @@ def list(bot, msg):
             bot.sendChannelMessage(msg.channel, cmd.match)
 
 def init(bot):
-    bot.events.register('channelMessage',ownercmd)
+    bot.events.register('channelMessageReceive',ownercmd)
 
 def close(bot):
-    bot.events.unregister('channelMessage',ownercmd)
+    bot.events.unregister('channelMessageReceive',ownercmd)

@@ -254,7 +254,7 @@ def eliza(bot, msg):
         bot.sendChannelMessage(msg.replyTo, '%s: %s' % (msg.user, analyze(split[1])))
 
 def init(bot):
-    bot.events.register('channelMessage', eliza)
+    bot.events.register('channelMessageReceive', eliza)
 
 def close(bot):
-    bot.events.unregister('channelMessage', eliza)
+    bot.events.unregister('channelMessageReceive', eliza)
