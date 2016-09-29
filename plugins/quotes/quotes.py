@@ -21,11 +21,6 @@ def utf_8_encoder(unicode_csv_data):
     for line in unicode_csv_data:
         yield line.encode('utf-8')
 
-def printQuote(bot,msg):
-    global quoteList
-    global quoteDir
-
-
 def quote(bot, msg):
     global quoteList
     global quoteDir
