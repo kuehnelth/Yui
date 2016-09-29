@@ -2,48 +2,31 @@
 # -*- coding: utf-8 -*-
 
 import os
-import collections
-import re
 import random
+import csv
 
 quoteDir = ''
 quoteList = {}
 
-msgDeque = {}
+#stupid hack taken from python.org csv examples, to get unicode to work
+def unicode_csv_reader(unicode_csv_data, dialect=csv.excel, **kwargs):
+    # csv.py doesn't do Unicode; encode temporarily as UTF-8:
+    csv_reader = csv.reader(utf_8_encoder(unicode_csv_data),
+                            dialect=dialect, **kwargs)
+    for row in csv_reader:
+        # decode UTF-8 back to Unicode, cell by cell:
+        yield [unicode(cell, 'utf-8') for cell in row]
 
-def bufferMsgs(msg):
-    global msgDeque
-    chan = msg.replyTo
-    text = u'<%s> %s' % (msg.user, msg.msg)
-    if chan not in msgDeque:
-        msgDeque[chan] = collections.deque(maxlen=200)
-    msgDeque[chan].append(text)
+def utf_8_encoder(unicode_csv_data):
+    for line in unicode_csv_data:
+        yield line.encode('utf-8')
 
 def printQuote(bot,msg):
     global quoteList
     global quoteDir
 
-    if msg.user == bot.nick:
-        return
 
-    isOwner = msg.user == bot.owner
-
-    split = msg.msg.split(' ')
-
-    #recall random message
-    if msg.msg.startswith('!quote'):
-        tag = msg.channel #default tag to channel name
-        if len(split) > 1:
-            tag = split[1]
-        if tag not in quoteList or len(quoteList[tag]) < 1:
-            bot.sendChannelMessage(msg.replyTo, u'I have no memory of this')
-        else:
-            l = len(quoteList[tag])
-            rnd = random.randint(0,l-1)
-            rcl = quoteList[tag][rnd]
-            bot.sendChannelMessage(msg.replyTo, u'Quote for "%s" (%d/%d): %s' % (tag,rnd+1,l,rcl))
-
-def addQuote(bot, msg):
+def quote(bot, msg):
     global quoteList
     global quoteDir
 
@@ -52,79 +35,49 @@ def addQuote(bot, msg):
 
     isOwner = msg.user == bot.owner
 
-    split = msg.msg.split(' ')
+    split = unicode_csv_reader([msg.msg], delimiter=' ', quotechar='"', skipinitialspace=True).next()
+    print split
 
-    #store one or more quotes
-    if msg.msg.startswith('!qadd'):
-        #list tags and quotes in them
-        if len(split) < 2:
-            l = []
-            for t, i in quoteList.items():
-                l.append(u'%s(%d)' % (t, len(i)))
-            bot.sendChannelMessage(msg.replyTo, u'Tags: ' + ', '.join(l))
-            return
+    #list tags and quotes in them
+    if len(split) >= 1 and split[0] == '!qlist':
+        l = []
+        for t, i in quoteList.items():
+            l.append(u'%s(%d)' % (t, len(i)))
+        bot.sendChannelMessage(msg.replyTo, u'Tags: ' + ', '.join(l))
+        return
 
-        #add a message
+    #store a quote
+    if isOwner and len(split) > 1 and split[0] == '!qadd':
         #figure out parameters
         tag = msg.channel #default tag to channel name
-        lineNr = 0 #from which message (counting backwards through the log)
-        lineCnt = 1 #how many messages (counting forwards starting at lineNr)
-        split.pop(0)
-        strip = split[0].lstrip('-+')
-        if not strip.isdigit():
-            tag = split[0]
-            split.pop(0)
 
+        if len(split) > 2:
+            tag = split[1]
             #don't let people store quotes in some channel's specific tag
             if tag.startswith('#'):
                 bot.sendChannelMessage(msg.replyTo, u'No.')
                 return
-        try:
-            if len(split) > 0:
-                lineNr = int(split[0].lstrip('-+'))
-                split.pop(0)
-            if len(split) > 0:
-                lineCnt = int(split[0])
-        except Exception as ex:
-            pass
+            split.pop()
 
-        #don't allow people to arbitrarily long stuff
-        if lineCnt > 10:
-            bot.sendChannelMessage(msg.replyTo, u'No.')
-            return
 
-        #TODO: do something more optimised than copying the whole thing to a list...
-        #(slicing doesn't work on deques)
-        if msg.channel in msgDeque:
-            lst = list(msgDeque[msg.channel])
+        storeQuote(tag, split[1])
+        bot.sendChannelMessage(msg.replyTo, 'Stored quote in [%s]' % tag)
+        return
+
+    #recall quote
+    if len(split) >= 1 and split[0] == '!quote':
+        tag = msg.channel #default tag to channel name
+
+        if len(split) > 1:
+            tag = split[1]
+        if tag not in quoteList or len(quoteList[tag]) < 1:
+            bot.sendChannelMessage(msg.replyTo, u'No tag named "%s" :(' % tag)
         else:
-            lst = []
-
-        #check line number boundaries
-        if lineNr > len(lst) or lineCnt > lineNr:
-            bot.sendChannelMessage(msg.replyTo, u'I have no memory of this')
-            return
-
-        #add line/link
-        if lineCnt == 1:
-            l = lst[-lineNr]
-        elif lineNr == lineCnt:
-            l = ' '.join(lst[-lineNr:])
-        else:
-            l = ' '.join(lst[-lineNr:-lineNr+lineCnt])
-
-        #TODO: trim string if too long?
-
-        storeQuote(tag, l)
-        bot.sendChannelMessage(msg.replyTo, 'Stored quote [%s] "%s"' % (tag,l))
-
-
-def quote(bot, msg):
-    addQuote(bot,msg)
-
-    #push the received message into the buffer
-    bufferMsgs(msg)
-
+            l = len(quoteList[tag])
+            rnd = random.randint(0,l-1)
+            rcl = quoteList[tag][rnd]
+            bot.sendChannelMessage(msg.replyTo, u'Quote for [%s] (%d/%d): %s' % (tag,rnd+1,l,rcl))
+        return
 
 #load existing quotes
 def loadQuotes():
@@ -160,6 +113,7 @@ def storeQuote(tag, msg):
         if tag not in quoteList:
             quoteList[tag] = []
         quoteList[tag].append(msg)
+        print quoteList
 
 def init(bot):
     global quoteDir
@@ -168,7 +122,7 @@ def init(bot):
     if not os.path.exists(quoteDir):
         os.makedirs(quoteDir)
     loadQuotes()
-    bot.events.register('channelMessage',quote)
+    bot.events.register('channelMessageReceive',quote)
 
 def close(bot):
-    bot.events.unregister('channelMessage', quote)
+    bot.events.unregister('channelMessageReceive', quote)
