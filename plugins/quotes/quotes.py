@@ -36,7 +36,6 @@ def quote(bot, msg):
     isOwner = msg.user == bot.owner
 
     split = unicode_csv_reader([msg.msg], delimiter=' ', quotechar='"', skipinitialspace=True).next()
-    print split
 
     #list tags and quotes in them
     if len(split) >= 1 and split[0] == '!qlist':
@@ -113,7 +112,6 @@ def storeQuote(tag, msg):
         if tag not in quoteList:
             quoteList[tag] = []
         quoteList[tag].append(msg)
-        print quoteList
 
 def init(bot):
     global quoteDir
