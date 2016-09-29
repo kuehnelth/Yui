@@ -49,17 +49,17 @@ def quote(bot, msg):
     if isOwner and len(split) > 1 and split[0] == '!qadd':
         #figure out parameters
         tag = msg.channel #default tag to channel name
+        content = split[1]
 
         if len(split) > 2:
             tag = split[1]
+            content = split[2]
             #don't let people store quotes in some channel's specific tag
             if tag.startswith('#'):
                 bot.sendChannelMessage(msg.replyTo, u'No.')
                 return
-            split.pop()
 
-
-        storeQuote(tag, split[1])
+        storeQuote(tag, content)
         bot.sendChannelMessage(msg.replyTo, 'Stored quote in [%s]' % tag)
         return
 
