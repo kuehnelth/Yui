@@ -33,7 +33,7 @@ def quote(bot, msg):
     split = unicode_csv_reader([msg.msg], delimiter=' ', quotechar='"', skipinitialspace=True).next()
 
     #list tags and quotes in them
-    if len(split) >= 1 and split[0] == '!qlist':
+    if len(split) >= 1 and split[0] == '!qtags':
         l = []
         for t, i in quoteList.items():
             l.append(u'%s(%d)' % (t, len(i)))
