@@ -7,6 +7,7 @@ import socket, ssl
 import time
 import optparse
 import re
+import errno
 from collections import namedtuple
 from collections import deque
 
@@ -286,6 +287,7 @@ class IrcBot(object):
 
         try:
             self.socket.connect((self.server, self.port))
+            self.socket.setblocking(False)
         except Exception as ex:
             self.log(u'error',u'Exception occured while trying to connect: %s' % repr(ex))
             return False
@@ -327,20 +329,37 @@ class IrcBot(object):
             while not self.connect():
                 time.sleep(30)
 
+            #main recv loop
             recv = u''
+            lastTime = time.time() #timestamp for detecting timeouts
             while not self.quitting:
                 try:
+                    now = time.time()
+                    if (now - lastTime) > 600: #10 minutes
+                        self.log(u'error', u'Connection timed out')
+                        break;
+
                     recv += self.socket.recv(4098).decode('utf-8')
+
+                    lastTime = now
+                except socket.error as e:
+                    err = e.args[0]
+                    #sleep for a short time, if no data was received
+                    if err == errno.EAGAIN or err == errno.EWOULDBLOCK:
+                        time.sleep(0.1)
+                        continue
                 except Exception as ex:
                     self.log(u'error', u'Exception occurred receiving data: %s' % repr(ex))
                     break #break inner loop, try to reconnect
 
+                #split received data into messages and process them
                 while u'\r\n' in recv:
                     line, recv = recv.split(u'\r\n', 1)
                     self.fireEvent('rawReceive', self, line)
                     cmd = self.parseServerCmd(line)
                     if cmd:
                         self.handleCmd(cmd)
+
             self.disconnect()
 
         #unload all plugins before quitting
