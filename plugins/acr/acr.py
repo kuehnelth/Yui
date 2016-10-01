@@ -3,6 +3,8 @@
 
 import sqlite3
 import os
+import thread
+import time
 
 rules = {
         "n":"AND wordtype LIKE '%n.%'",
@@ -14,8 +16,10 @@ rules = {
         "pron":"AND wordtype LIKE '%pron.%'",
 }
 
+def acr(bot,msg):
+    thread.start_new_thread(acr_thread, (bot, msg))
 
-def racron(bot, msg):
+def acr_thread(bot, msg):
     args = msg.msg.split(' ')
     if len(args) < 2 or args[0] != '!acr':
         return
@@ -26,29 +30,29 @@ def racron(bot, msg):
 
 
     arg = 1
-    str = ''
+    words = ''
     path = os.path.join(os.path.dirname(__file__),'dict.sqlite')
     con = sqlite3.connect(path)
     with con:
         for c in args[1]:
             rule = ""
             arg += 1
-            if arg < len(args):
+            if arg < len(args) and len(args[arg]) > 0:
                 if args[arg] in rules:
                     rule = rules[args[arg]]
                 else:
-                    str += args[arg] + ' '
+                    words += args[arg] + ' '
                     continue;
             cur = con.cursor()
             cur.execute("SELECT LOWER(word) FROM entries WHERE LOWER(word) LIKE '"+c+"%' "+rule+" ORDER BY RANDOM() LIMIT 1;")
             row = cur.fetchone()
             if row != None:
-                str += (row[0] + ' ')
-    bot.sendChannelMessage(msg.replyTo, str)
+                words += (row[0] + ' ')
+    bot.sendChannelMessage(msg.replyTo, '"%s": %s' % (args[1], words))
 
 
 def init(bot):
-    bot.events.register('channelMessageReceive',racron)
+    bot.events.register('channelMessageReceive',acr)
 
 def close(bot):
-    bot.events.unregister('channelMessageReceive',racron)
+    bot.events.unregister('channelMessageReceive',acr)
