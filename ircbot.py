@@ -144,15 +144,15 @@ class IrcBot(object):
 
         #register some events
         self.events = EventManager()
-        self.events.register('channelMessageSend');
-        self.events.register('channelMessageReceive');
-        self.events.register('log');
-        self.events.register('rawSend');
-        self.events.register('rawReceive');
-        self.events.register('ircCmd');
-        self.events.register('preConnect');
-        self.events.register('postConnect');
-        self.events.register('disconnect');
+        self.events.register('channelMessageSend')
+        self.events.register('channelMessageReceive')
+        self.events.register('log')
+        self.events.register('rawSend')
+        self.events.register('rawReceive')
+        self.events.register('ircCmd')
+        self.events.register('preConnect')
+        self.events.register('postConnect')
+        self.events.register('disconnect')
 
     #send a raw line to the server
     def sendRaw(self,msg):
@@ -352,7 +352,7 @@ class IrcBot(object):
                     now = time.time()
                     if (now - lastTime) > self.config['timeout']:
                         self.log(u'error', u'Connection timed out')
-                        break;
+                        break
 
                     recv += self.socket.recv(4098).decode('utf-8')
 
