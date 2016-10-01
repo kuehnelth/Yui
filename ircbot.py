@@ -17,9 +17,6 @@ IrcMsg = namedtuple('IrcMsg', ['channel', 'user', 'msg', 'replyTo'])
 
 IrcServerCmd = namedtuple('IrcServerCmd', ['prefix', 'cmd', 'args'])
 
-#register (eventName, function, prio = lowest)
-#unregister (eventName, function)
-#fire (eventName, params)
 class EventManager(list):
     def __call__(self, *args, **kwargs):
         for handler in self:
@@ -386,7 +383,6 @@ class IrcBot(object):
         return True
 
 #ugly commandline parsing
-#TODO: replace this with a config file or something
 optParser = optparse.OptionParser()
 optParser.add_option('-c', '--config', dest='config', action="store", default='config.json')
 options, remainder = optParser.parse_args()
