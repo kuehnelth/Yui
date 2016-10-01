@@ -25,10 +25,7 @@ def quote(bot, msg):
     global quoteList
     global quoteDir
 
-    if msg.user == bot.nick:
-        return
-
-    isOwner = msg.user == bot.owner
+    isMod = msg.user in bot.config['moderators'] or msg.user in bot.config['admins']
 
     split = unicode_csv_reader([msg.msg], delimiter=' ', quotechar='"', skipinitialspace=True).next()
 
@@ -41,7 +38,7 @@ def quote(bot, msg):
         return
 
     #store a quote
-    if isOwner and len(split) > 1 and split[0] == '!qadd':
+    if isMod and len(split) > 1 and split[0] == '!qadd':
         #figure out parameters
         tag = msg.channel #default tag to channel name
         content = split[1]

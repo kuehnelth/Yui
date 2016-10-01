@@ -1,17 +1,17 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-def ownercmd(bot,msg):
-    if msg.msg.startswith('!owner'):
-        bot.sendChannelMessage(msg.replyTo, u'I belong to %s' % bot.owner)
+def admin(bot,msg):
+    if msg.msg.startswith('!admin'):
+        bot.sendChannelMessage(msg.replyTo, u'Admins: [%s], Mods: [%s]' % (','.join(bot.config['admins']), ','.join(bot.config['moderators'])))
         return
 
     if msg.msg.startswith('!source'):
         bot.sendChannelMessage(msg.replyTo, u'https://github.com/Rj48/ircbot')
         return
 
-    #owner-only commands below
-    if msg.user != bot.owner:
+    #admin commands below
+    if msg.user not in bot.config['admins']:
         return
 
     split = msg.msg.split(' ', 1)
@@ -34,13 +34,8 @@ def ownercmd(bot,msg):
             if len(split) > 1:
                 bot.sendChannelMessage(split[0], split[1])
 
-def list(bot, msg):
-    if msg.user == bot.owner:
-        for cmd in bot.onMsgHandlers:
-            bot.sendChannelMessage(msg.channel, cmd.match)
-
 def init(bot):
-    bot.events.register('channelMessageReceive',ownercmd)
+    bot.events.register('channelMessageReceive',admin)
 
 def close(bot):
-    bot.events.unregister('channelMessageReceive',ownercmd)
+    bot.events.unregister('channelMessageReceive',admin)

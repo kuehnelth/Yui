@@ -2,8 +2,9 @@
 # -*- coding: utf-8 -*-
 
 def plugs(bot, msg):
-    if msg.user != bot.owner:
+    if msg.user not in bot.config['admins']:
         return
+
     split = msg.msg.split(' ')
     if len(split) < 2:
         return;

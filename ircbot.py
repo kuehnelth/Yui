@@ -8,8 +8,10 @@ import time
 import optparse
 import re
 import errno
+import json
 from collections import namedtuple
 from collections import deque
+from collections import OrderedDict
 
 IrcMsg = namedtuple('IrcMsg', ['channel', 'user', 'msg', 'replyTo'])
 
@@ -110,7 +112,7 @@ class PluginLoader(object):
 
     #loads all plugins in the plugin root
     def loadAll(self, *args, **kwargs):
-        for f in os.listdir(rootDir):
+        for f in os.listdir(self.rootDir):
             if os.path.isdir(os.path.join(self.rootDir,f)) or f.endswith('.py'):
                 self.load(f.rstrip('.py'), *args, **kwargs)
 
@@ -132,18 +134,13 @@ class PluginLoader(object):
 
 class IrcBot(object):
     def __init__(self):
-        #parameter defaults
-        self.server = 'localhost'
-        self.port = 6667
-        self.ssl = False
-        self.nick = ''
-        self.user = ''
-        self.password = ''
-        self.owner = ''
+        self.configPath = 'config.json'
+        self.config = None
+
         self.socket = None
         self.quitting = False
 
-        self.plugins = PluginLoader('plugins')
+        self.plugins = None
 
         #register some events
         self.events = EventManager()
@@ -154,6 +151,8 @@ class IrcBot(object):
         self.events.register('rawReceive');
         self.events.register('ircCmd');
         self.events.register('preConnect');
+        self.events.register('postConnect');
+        self.events.register('disconnect');
 
     #send a raw line to the server
     def sendRaw(self,msg):
@@ -193,7 +192,7 @@ class IrcBot(object):
         self.sendRaw(u'PRIVMSG %s :%s' % (channel, msg))
         #fire channelMessage event for outgoing messages
         evMsg = IrcMsg(channel = channel,
-                        user = self.nick,
+                        user = self.config['nick'],
                         msg = msg,
                         replyTo = channel)
         self.fireEvent('channelMessageSend',self,evMsg)
@@ -204,7 +203,7 @@ class IrcBot(object):
             self.log(u'warning',u'Tried setting nick to empty string')
             return False
         self.sendRaw(u'NICK %s' % nick)
-        self.nick = nick
+        self.config['nick'] = nick
         return True
 
     #join a channel
@@ -270,23 +269,34 @@ class IrcBot(object):
                          replyTo = reply)
             self.fireEvent('channelMessageReceive',self,msg)
 
+    def loadConfig(self):
+        with open(self.configPath) as f:
+            self.config = json.load(f, object_pairs_hook=OrderedDict)
+
+    def saveConfig(self):
+        with open(self.configPath, 'w') as f:
+            jsonStr = json.dumps(self.config, ensure_ascii=False, indent=4, separators=(',',': '))
+            f.write(jsonStr.encode('utf-8'))
+
     #try to connect to a server
     #TODO: handle failed self.sendRaw calls somehow?
     def connect(self):
-        if not self.user:
+        self.fireEvent('preConnect', self)
+
+        if not self.config['user']:
             self.log(u'fatal', u'No username defined')
             return False
 
         self.socket = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
 
         #enable ssl
-        if self.ssl:
+        if 'ssl' in self.config and self.config['ssl']:
             self.socket = ssl.wrap_socket(self.socket)
 
-        self.log(u'info', u'Connecting to %s:%d' % (self.server, self.port))
+        self.log(u'info', u'Connecting to %s:%d' % (self.config['server'], self.config['port']))
 
         try:
-            self.socket.connect((self.server, self.port))
+            self.socket.connect((self.config['server'], self.config['port']))
             self.socket.setblocking(False)
         except Exception as ex:
             self.log(u'error',u'Exception occured while trying to connect: %s' % repr(ex))
@@ -294,14 +304,16 @@ class IrcBot(object):
 
         self.log(u'info',u'Connected!')
 
-        if self.password:
-            self.sendRaw('PASS %s' % self.password)
+        if 'password' in self.config and self.config['password']:
+            self.sendRaw('PASS %s' % self.config['password'])
 
         #set the nick = username, if we don't have one configured
-        if not self.nick:
-            self.nick = self.user
-        self.setNick(self.nick)
-        self.sendRaw('USER %s 0 * :teh bot' % self.user)
+        if not self.config['nick']:
+            self.config['nick'] = self.config['user']
+        self.setNick(self.config['nick'])
+        self.sendRaw('USER %s 0 * :teh bot' % self.config['user'])
+
+        self.fireEvent('postConnect', self)
 
         return True
 
@@ -313,13 +325,16 @@ class IrcBot(object):
             self.socket.close()
         else:
             self.log(u'warning', u'Tried disconnecting while socket wasn\'t open')
+        self.fireEvent('disconnect', self)
 
     #main loop
-    #
     def run(self):
         #load all plugins
         try:
-            self.plugins.loadAll(self)
+            self.loadConfig()
+            self.plugins = PluginLoader(self.config['pluginDir'])
+            for p in self.config['pluginAutoLoad']:
+                self.plugins.load(p, self)
         except Exception as ex:
             self.log(u'fatal', u'Exception occurred while loading plugins: %s' % repr(ex))
             return False
@@ -335,7 +350,7 @@ class IrcBot(object):
             while not self.quitting:
                 try:
                     now = time.time()
-                    if (now - lastTime) > 600: #10 minutes
+                    if (now - lastTime) > self.config['timeout']:
                         self.log(u'error', u'Connection timed out')
                         break;
 
@@ -365,32 +380,17 @@ class IrcBot(object):
         #unload all plugins before quitting
         self.plugins.unloadAll(self)
 
+        #save the config, in case it was modified
+        self.saveConfig()
+
         return True
 
 #ugly commandline parsing
 #TODO: replace this with a config file or something
 optParser = optparse.OptionParser()
-optParser.add_option('-s', '--server', dest='host', action="store", default='localhost')
-optParser.add_option('-P', '--port', dest='port', action="store", type="int", default=6667)
-optParser.add_option('-S', '--ssl', dest='ssl', action="store_true", default=False)
-optParser.add_option('-u', '--user', dest='user', action="store", default='')
-optParser.add_option('-n', '--nick', dest='nick', action="store", default='')
-optParser.add_option('-p', '--password', dest='password', action="store", default='')
-optParser.add_option('-o', '--owner', dest='owner', action="store", default='')
-optParser.add_option('--plugin-dir', dest='plugins', action="store", default='plugins')
+optParser.add_option('-c', '--config', dest='config', action="store", default='config.json')
 options, remainder = optParser.parse_args()
 
 bot = IrcBot()
-bot.server = options.host
-bot.port = options.port
-bot.ssl = options.ssl
-bot.nick = options.nick
-bot.user = options.user
-bot.password = options.password
-bot.owner = options.owner
-bot.plugins.rootDir = options.plugins
-
-rootDir = os.path.dirname(__file__)
-rootDir = os.path.join(rootDir, options.plugins)
-
+bot.configPath = options.config
 bot.run()
