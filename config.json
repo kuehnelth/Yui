@@ -1,0 +1,28 @@
+{
+    "server": "irc.example.com",
+    "port": 6667,
+    "ssl": false,
+    "timeout": 600,
+    "user": "yetanotherbot",
+    "password": "",
+    "nick": "YAB",
+    "admins": [
+        "yournamegoeshere"
+    ],
+    "moderators": [],
+    "pluginDir": "plugins",
+    "pluginAutoLoad": [
+        "urbandict",
+        "acr",
+        "url",
+        "owner",
+        "silliness",
+        "log",
+        "plugs",
+        "quotes",
+        "autojoin"
+    ],
+    "channels": [
+        "#installgentoo"
+    ]
+}
