@@ -1,8 +1,7 @@
 # ircbot
 It's a bot, for IRC.
 
-For a list of parameters, run **./ircbot.py --help**  
-(Will be replaced by a config file at some point)
+Loads **config.json** by default, but you can also specify a different one using the **-c** or **--config** option. (as **./ircbot.py --help** will also tell you)
 
 Pretty much all of the functionality and commands are implemented as plugins, so just have a poke around the **plugins/**
 
