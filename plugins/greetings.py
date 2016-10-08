@@ -6,7 +6,7 @@ import random
 
 phrases = [
     [u'hi', u'hello'],
-    [u'yo', u'\'sup'],
+    [u'yo', u'sup'],
     [u'hallo', u'tag', u'moin'],
     [u'こんにちは', u'こんちわ'],
     [u'よ', u'やぁ', u'おっす']
