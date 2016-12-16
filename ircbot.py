@@ -1,21 +1,20 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
 import imp
 import os
-import socket, ssl
-import time
-import optparse
 import re
-import errno
 import json
+import irc.bot
+import irc.strings
+
+
+
 from collections import namedtuple
 from collections import deque
 from collections import OrderedDict
 
 IrcMsg = namedtuple('IrcMsg', ['channel', 'user', 'msg', 'replyTo'])
-
-IrcServerCmd = namedtuple('IrcServerCmd', ['prefix', 'cmd', 'args'])
 
 class EventManager(list):
     def __call__(self, *args, **kwargs):
@@ -62,10 +61,10 @@ class EventManager(list):
         while len(self.__eventBuffer) > 0:
             en, a, kwa = self.__eventBuffer[0]
             for prio, func in self.events[en]:
-                try:
+                #try:
                     func(*a, **kwa)
-                except Exception as ex:
-                    exception = ex
+                #except Exception as ex:
+                #    exception = ex
             self.__eventBuffer.popleft()
 
         #raise the last exception we saw, if we had one
@@ -123,53 +122,91 @@ class PluginLoader(object):
         return False
 
     def unloadAll(self, *args, **kwargs):
-        plugs = self.plugins.keys()
+        plugs = list(self.plugins.keys())
         for name in plugs:
             self.unload(name, *args, **kwargs)
 
 
 
-class IrcBot(object):
-    def __init__(self):
-        self.configPath = 'config.json'
+class IrcBot(irc.bot.SingleServerIRCBot):
+    def __init__(self, configPath):
+        self.configPath = configPath
         self.config = None
-
-        self.socket = None
-        self.quitting = False
 
         self.plugins = None
 
         #register some events
         self.events = EventManager()
-        self.events.register('channelMessageSend')
-        self.events.register('channelMessageReceive')
+        self.events.register('messageSend')
+        self.events.register('messageRecv')
         self.events.register('log')
-        self.events.register('rawSend')
-        self.events.register('rawReceive')
-        self.events.register('ircCmd')
-        self.events.register('preConnect')
         self.events.register('postConnect')
         self.events.register('disconnect')
 
-    #send a raw line to the server
-    def sendRaw(self,msg):
-        try:
-            #strip newlines
-            badChars = u'\r\n'
-            stripped = re.sub(u'['+badChars+']+', '', msg)
+        #load config
+        if not self.loadConfig():
+            quit()
 
-            utf8 = stripped.encode('utf-8')
+        #load plugins
+        if not self.loadPlugins():
+            quit()
 
-            #clamp length
-            if utf8 > 400:
-                utf8 = utf8[:400]
+        #start server
+        irc.bot.SingleServerIRCBot.__init__(self, [(self.config['server'], self.config['port'])], self.config['nick'], self.config['nick'])
 
-            self.socket.send(utf8+'\r\n')
-        except TypeError as ex:
-            self.log(u'error', u'Exception occurred sending data: %s' % repr(ex))
-            return False
-        self.fireEvent('rawSend',bot,msg)
-        return True
+    def dbg(self,conn,event):
+        #print(conn)
+        #print(event)
+        return
+
+    def on_join(self,conn,event):
+        self.dbg(conn,event)
+    def on_namreply(self,conn,event):
+        self.dbg(conn,event)
+    def on_part(self,conn,event):
+        self.dbg(conn,event)
+    def on_nick(self,conn,event):
+        self.dbg(conn,event)
+    def on_mode(self,conn,event):
+        self.dbg(conn,event)
+    def on_kick(self,conn,event):
+        self.dbg(conn,event)
+
+    def on_disconnect(self,conn,event):
+        self.dbg(conn,event)
+        self.log('info','disconnected')
+        self.fireEvent('disconnect', self)
+
+    def on_privmsg(self,conn,event):
+        self.dbg(conn,event)
+        evMsg = IrcMsg(channel=conn.get_nickname(),
+                        user=event.source.nick,
+                        msg=event.arguments[0],
+                        replyTo=event.source.nick)
+        self.fireEvent('messageRecv', self, evMsg)
+
+    def on_pubmsg(self,conn,event):
+        self.dbg(conn,event)
+        evMsg = IrcMsg(channel=event.target,
+                        user=event.source.nick,
+                        msg=event.arguments[0],
+                        replyTo=event.target)
+        self.fireEvent('messageRecv', self, evMsg)
+
+    #servers tend to not take joins etc. before they sent a welcome msg
+    def on_welcome(self,conn,event):
+        self.dbg(conn,event)
+        self.log('info','connected!')
+        self.fireEvent('postConnect', self)
+
+    #append our nick is in use, append a _
+    def on_nicknameinuse(self, conn, event):
+        self.dbg(conn,event)
+        self.log('warn','nick %s already in use' % self.getNick())
+        self.setNick(self.getNick() + '_')
+
+    def on_connect(self, conn, event):
+        return
 
     #wrapper for EventManager.fire()
     #to handle any exceptions (i.e. crash-proofing plugins a bit)
@@ -177,216 +214,96 @@ class IrcBot(object):
         try:
             self.events.fire(eventName, *args, **kwargs)
         except Exception as ex:
-            self.log(u'error', u'Exception occurred processing event "%s": %s' % (eventName, repr(ex)))
+            self.log('error', 'Exception occurred processing event "%s": %s' % (eventName, repr(ex)))
 
     #prints to stdout and fires the 'log' event
     def log(self, level, msg):
-        print '[%s] %s' % (level, msg)
+        print('[%s] %s'% (level, msg))
         self.fireEvent('log',self,level,msg)
 
     #send a message to a channel/user
-    def sendChannelMessage(self, channel, msg):
-        self.sendRaw(u'PRIVMSG %s :%s' % (channel, msg))
-        #fire channelMessage event for outgoing messages
+    def sendMessage(self, channel, msg):
+        self.connection.privmsg(channel, msg)
         evMsg = IrcMsg(channel = channel,
-                        user = self.config['nick'],
+                        user= self.getNick(),
                         msg = msg,
                         replyTo = channel)
         self.fireEvent('channelMessageSend',self,evMsg)
 
-    #set the nick
+    #get the current bot's nick
+    def getNick(self):
+        return self.connection.get_nickname()
+
+    #set the bot's nick
     def setNick(self, nick):
-        if not nick:
-            self.log(u'warning',u'Tried setting nick to empty string')
-            return False
-        self.sendRaw(u'NICK %s' % nick)
-        self.config['nick'] = nick
-        return True
+        self.log('info',"Changing nick to '%s'" % nick)
+        self.connection.nick(nick)
 
     #join a channel
     def join(self, channel):
-        if not channel:
-            self.log(u'warning',u'Tried joining channel without name')
-            return False
-        self.sendRaw(u'JOIN %s' % channel)
-        return True
+        self.log('info','Joining channel %s'%channel)
+        self.connection.join(channel)
 
     #leave a channel
-    def part(self, channel):
-        if not channel:
-            self.log(u'warning',u'Tried parting from channel without name')
-            return False
-        self.sendRaw(u'PART %s' % channel)
-        return True
+    def part(self, channel, msg = ""):
+        self.log('info','Leaving channel %s'%channel)
+        self.connection.part(channel,msg)
 
     #quit from the server
     #also ends the main loop gracefully
     def quit(self, reason):
-        self.sendRaw(u'QUIT :%s' % reason)
-        self.quitting = True
-        self.log(u'info', u'Quit (%s)' % reason)
-
-    #parse a command received from the server and split it into manageable parts
-    #*inspired by* twisted's irc implementation
-    def parseServerCmd(self,cmd):
-        prefix = ''
-        trailing = []
-        if not cmd:
-           return None
-        if cmd[0] == ':':
-            prefix, cmd = cmd[1:].split(' ', 1)
-        if cmd.find(' :') != -1:
-            cmd, trailing = cmd.split(' :', 1)
-            args = cmd.split()
-            args.append(trailing)
-        else:
-            args = cmd.split()
-        command = args.pop(0)
-        return IrcServerCmd(prefix, command, args)
-
-    #handle a received command (that has been parsed by parseServerCmd())
-    def handleCmd(self, cmd):
-        #fire an event with the parsed cmd
-        self.fireEvent('ircCmd', self, cmd)
-
-        #handle pings
-        if cmd.cmd == u'PING':
-            self.sendRaw(u'PONG :%s' % cmd.args[0])
-
-        #handle chat messages
-        if cmd.cmd == u'PRIVMSG':
-            channel = cmd.args[0]
-            reply = channel #the channel/user you'd typically reply to using sendChannelMessage
-            user = cmd.prefix.split(u'!')[0]
-            if not reply.startswith(u'#'):
-                reply = user #we're not in a channel, reply to the user directly
-            msg = IrcMsg(channel = channel,
-                         user = user,
-                         msg = cmd.args[1],
-                         replyTo = reply)
-            self.fireEvent('channelMessageReceive',self,msg)
+        self.log('info', 'Quit (%s)' % reason)
+        self.connection.quit(reason)
+        self.die()
 
     def loadConfig(self):
-        with open(self.configPath) as f:
-            self.config = json.load(f, object_pairs_hook=OrderedDict)
-
-    def saveConfig(self):
-        with open(self.configPath, 'w') as f:
-            jsonStr = json.dumps(self.config, ensure_ascii=False, indent=4, separators=(',',': '))
-            f.write(jsonStr.encode('utf-8'))
-
-    #try to connect to a server
-    #TODO: handle failed self.sendRaw calls somehow?
-    def connect(self):
-        self.fireEvent('preConnect', self)
-
-        if not self.config['user']:
-            self.log(u'fatal', u'No username defined')
-            return False
-
-        self.socket = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
-
-        #enable ssl
-        if 'ssl' in self.config and self.config['ssl']:
-            self.socket = ssl.wrap_socket(self.socket)
-
-        self.log(u'info', u'Connecting to %s:%d' % (self.config['server'], self.config['port']))
-
         try:
-            self.socket.connect((self.config['server'], self.config['port']))
-            self.socket.setblocking(False)
+            with open(self.configPath) as f:
+                self.config = json.load(f, object_pairs_hook=OrderedDict)
         except Exception as ex:
-            self.log(u'error',u'Exception occured while trying to connect: %s' % repr(ex))
+            self.log('error','Exception occurred while loading config: %s' % repr(ex))
             return False
-
-        self.log(u'info',u'Connected!')
-
-        if 'password' in self.config and self.config['password']:
-            self.sendRaw('PASS %s' % self.config['password'])
-
-        #set the nick = username, if we don't have one configured
-        if not self.config['nick']:
-            self.config['nick'] = self.config['user']
-        self.setNick(self.config['nick'])
-        self.sendRaw('USER %s 0 * :teh bot' % self.config['user'])
-
-        self.fireEvent('postConnect', self)
-
         return True
 
-    #disconnect the socket
-    def disconnect(self):
-        self.log(u'info', u'Disconnecting')
-        if self.socket:
-            self.socket.shutdown(socket.SHUT_RDWR)
-            self.socket.close()
-        else:
-            self.log(u'warning', u'Tried disconnecting while socket wasn\'t open')
-        self.fireEvent('disconnect', self)
-
-    #main loop
-    def run(self):
-        #load all plugins
+    def saveConfig(self):
+        self.log('info', 'Saving config')
         try:
-            self.loadConfig()
+            with open(self.configPath, 'w') as f:
+                jsonStr = json.dumps(self.config, ensure_ascii=False, indent=4, separators=(',',': '))
+                f.write(jsonStr.encode('utf-8'))
+        except Exception as ex:
+            self.log('error', 'Exception occurred while saving config: %s' % repr(ex))
+            return False
+        return True
+
+    #load all plugins
+    def loadPlugins(self):
+        self.log('info', 'Loading plugins')
+        try:
             self.plugins = PluginLoader(self.config['pluginDir'])
             for p in self.config['pluginAutoLoad']:
                 self.plugins.load(p, self)
         except Exception as ex:
-            self.log(u'fatal', u'Exception occurred while loading plugins: %s' % repr(ex))
+            self.log('fatal', 'Exception occurred while loading plugins: %s' % repr(ex))
             return False
+        return True
 
-        while not self.quitting:
-            #try connecting indefinitely
-            while not self.connect():
-                time.sleep(30)
 
-            #main recv loop
-            recv = u''
-            lastTime = time.time() #timestamp for detecting timeouts
-            while not self.quitting:
-                try:
-                    now = time.time()
-                    if (now - lastTime) > self.config['timeout']:
-                        self.log(u'error', u'Connection timed out')
-                        break
-
-                    recv += self.socket.recv(4098).decode('utf-8')
-
-                    lastTime = now
-                except socket.error as e:
-                    err = e.args[0]
-                    #sleep for a short time, if no data was received
-                    if err == errno.EAGAIN or err == errno.EWOULDBLOCK:
-                        time.sleep(0.1)
-                        continue
-                except Exception as ex:
-                    self.log(u'error', u'Exception occurred receiving data: %s' % repr(ex))
-                    break #break inner loop, try to reconnect
-
-                #split received data into messages and process them
-                while u'\r\n' in recv:
-                    line, recv = recv.split(u'\r\n', 1)
-                    self.fireEvent('rawReceive', self, line)
-                    cmd = self.parseServerCmd(line)
-                    if cmd:
-                        self.handleCmd(cmd)
-
-            self.disconnect()
-
-        #unload all plugins before quitting
+    #some cleanup on quit
+    def on_quit(self,conn,event):
+        #unload all plugins
         self.plugins.unloadAll(self)
-
         #save the config, in case it was modified
         self.saveConfig()
 
-        return True
+def main():
+    #ugly commandline parsing
+    import sys
+    conf = "config.json"
+    if len(sys.argv) > 1:
+        conf = sys.argv[1]
+    bot = IrcBot(conf)
+    bot.start()
 
-#ugly commandline parsing
-optParser = optparse.OptionParser()
-optParser.add_option('-c', '--config', dest='config', action="store", default='config.json')
-options, remainder = optParser.parse_args()
-
-bot = IrcBot()
-bot.configPath = options.config
-bot.run()
+if __name__ == "__main__":
+    main()

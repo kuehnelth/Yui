@@ -15,28 +15,28 @@ def plugs(bot, msg):
     if split[0] == '!plug':
         try:
             if bot.plugins.load(plugName,bot):
-                bot.sendChannelMessage(msg.replyTo, 'Loaded %s' % plugName)
+                bot.sendMessage(msg.replyTo, 'Loaded %s' % plugName)
                 return
         except Exception as ex:
             pass
 
         #plugin couldn't be loaded
-        bot.sendChannelMessage(msg.replyTo, 'Couldn\'t load %s' % plugName)
+        bot.sendMessage(msg.replyTo, 'Couldn\'t load %s' % plugName)
         return
 
     #unload plugin
     elif split[0] == '!unplug':
         try:
             if bot.plugins.unload(split[1],bot):
-                bot.sendChannelMessage(msg.replyTo, 'Unloaded %s' % plugName)
+                bot.sendMessage(msg.replyTo, 'Unloaded %s' % plugName)
                 return
         except Exception as ex:
             pass
         #plugin couldn't be properly unloaded
-        bot.sendChannelMessage(msg.replyTo, 'Couldn\'t unload %s' % plugName)
+        bot.sendMessage(msg.replyTo, 'Couldn\'t unload %s' % plugName)
 
 def init(bot):
-    bot.events.register('channelMessageReceive',plugs)
+    bot.events.register('messageRecv',plugs)
 
 def close(bot):
-    bot.events.unregister('channelMessageReceive',plugs)
+    bot.events.unregister('messageRecv',plugs)

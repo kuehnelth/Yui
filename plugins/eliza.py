@@ -249,12 +249,12 @@ def eliza(bot, msg):
 
     split = msg.msg.split(' ', 1)
     if len(split) < 2 or len(split[1]) < 1:
-        bot.sendChannelMessage(msg.replyTo, 'Hello, %s. How are you feeling today?' % msg.user)
+        bot.sendMessage(msg.replyTo, 'Hello, %s. How are you feeling today?' % msg.user)
     else:
-        bot.sendChannelMessage(msg.replyTo, '%s: %s' % (msg.user, analyze(split[1])))
+        bot.sendMessage(msg.replyTo, '%s: %s' % (msg.user, analyze(split[1])))
 
 def init(bot):
-    bot.events.register('channelMessageReceive', eliza)
+    bot.events.register('messageRecv', eliza)
 
 def close(bot):
-    bot.events.unregister('channelMessageReceive', eliza)
+    bot.events.unregister('messageRecv', eliza)

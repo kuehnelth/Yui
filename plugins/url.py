@@ -2,13 +2,12 @@
 # -*- coding: utf-8 -*-
 
 import re
-import urllib2
+import urllib.request
+import html.parser
 
-from HTMLParser import HTMLParser
-
-class TitleParser(HTMLParser):
+class TitleParser(html.parser.HTMLParser):
     def __init__(self):
-        HTMLParser.__init__(self)
+        html.parser.HTMLParser.__init__(self)
         self.reading = False
         self.done = False
         self.title = ''
@@ -41,35 +40,33 @@ def urlEncodeNonAscii(string):
 #or None if it's not a valid url
 def getEncodedUrl(url):
     #test if it's a valid URL and encode it properly, if it is
-    parts = urllib2.urlparse.urlparse(url)
+    parts = urllib.request.urlparse(url)
     if not ((parts[0] == 'http' or parts[0] == 'https') and parts[1] and parts[1] != 'localhost' and not parts[1].split('.')[-1].isdigit()):
         return None
 
     #handle unicode URLs
-    url = urllib2.urlparse.urlunparse(
-            p.encode('idna') if i == 1 else urlEncodeNonAscii(p.encode('utf-8'))
+    url = urllib.request.urlunparse(
+            p if i == 1 else urlEncodeNonAscii(p)
             for i, p in enumerate(parts)
     )
     return url
 
-def getUrlTitle(url, enc=['utf8', 'shift-jis', 'ISO-8859', 'Windows-1251', 'euc-jp']):
+def getUrlTitle(url):
+    enc='utf8'
     title = ''
     parser = TitleParser()
     try:
-        resp = urllib2.urlopen(url, timeout=5)
+        resp = urllib.request.urlopen(url, timeout=5)
 
         #try the charset set in the html header first, if there is one
-        #if 'content-type' in resp.headers:
-        #    enc.insert(0,enc.append(resp.headers['content-type'].split('charset=')[-1]))
+        if 'content-type' in resp.headers and 'charset=' in resp.headers['content-type']:
+            enc = resp.headers['content-type'].split('charset=')[-1]
 
-        #read in chunks, up to 1mb
-        chunkSize = 1024
-        for i in range(0, 1024*1024*1024, chunkSize):
-            chunk = resp.read(chunkSize)
-            parser.feed(chunk)
-            if parser.done:
-                title = parser.title
-                break
+        #read up to 1mb
+        chunk = resp.read(1024*1024)
+        parser.feed(chunk.decode(enc))
+        if parser.done:
+            title = parser.title
         parser.close()
     except Exception as ex:
         return None
@@ -110,11 +107,11 @@ def url(bot, msg):
     #don't say anything, if we couldn't get any titles
     if foundTitle:
         concat = ', '.join(titles)
-        bot.sendChannelMessage(msg.replyTo, concat)
+        bot.sendMessage(msg.replyTo, concat)
 
 
 def init(bot):
-    bot.events.register('channelMessageReceive',url)
+    bot.events.register('messageRecv',url)
 
 def close(bot):
-    bot.events.unregister('channelMessageReceive',url)
+    bot.events.unregister('messageRecv',url)

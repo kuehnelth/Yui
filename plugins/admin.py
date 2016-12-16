@@ -3,11 +3,11 @@
 
 def admin(bot,msg):
     if msg.msg.startswith('!admin'):
-        bot.sendChannelMessage(msg.replyTo, u'Admins: [%s], Mods: [%s]' % (','.join(bot.config['admins']), ','.join(bot.config['moderators'])))
+        bot.sendMessage(msg.replyTo, 'Admins: [%s], Mods: [%s]' % (','.join(bot.config['admins']), ','.join(bot.config['moderators'])))
         return
 
     if msg.msg.startswith('!source'):
-        bot.sendChannelMessage(msg.replyTo, u'https://github.com/Rj48/ircbot')
+        bot.sendMessage(msg.replyTo, 'https://github.com/Rj48/ircbot')
         return
 
     #admin commands below
@@ -32,10 +32,10 @@ def admin(bot,msg):
     elif len(split) > 1 and split[0].startswith('!echo'):
             split = split[1].split(' ', 1)
             if len(split) > 1:
-                bot.sendChannelMessage(split[0], split[1])
+                bot.sendMessage(split[0], split[1])
 
 def init(bot):
-    bot.events.register('channelMessageReceive',admin)
+    bot.events.register('messageRecv',admin)
 
 def close(bot):
-    bot.events.unregister('channelMessageReceive',admin)
+    bot.events.unregister('messageRecv',admin)

@@ -3,7 +3,7 @@
 
 import sqlite3
 import os
-import thread
+import _thread
 import time
 
 rules = {
@@ -17,7 +17,7 @@ rules = {
 }
 
 def acr(bot,msg):
-    thread.start_new_thread(acr_thread, (bot, msg))
+    _thread.start_new_thread(acr_thread, (bot, msg))
 
 def acr_thread(bot, msg):
     args = msg.msg.split(' ')
@@ -25,7 +25,7 @@ def acr_thread(bot, msg):
         return
 
     if len(args[1]) > 10:
-        bot.sendChannelMessage(msg.replyTo, msg.user+': fuck off')
+        bot.sendMessage(msg.replyTo, msg.user+': fuck off')
         return
 
 
@@ -48,11 +48,11 @@ def acr_thread(bot, msg):
             row = cur.fetchone()
             if row != None:
                 words += (row[0] + ' ')
-    bot.sendChannelMessage(msg.replyTo, '"%s": %s' % (args[1], words))
+    bot.sendMessage(msg.replyTo, '"%s": %s' % (args[1], words))
 
 
 def init(bot):
-    bot.events.register('channelMessageReceive',acr)
+    bot.events.register('messageRecv',acr)
 
 def close(bot):
-    bot.events.unregister('channelMessageReceive',acr)
+    bot.events.unregister('messageRecv',acr)
