@@ -171,6 +171,8 @@ class IrcBot(irc.bot.SingleServerIRCBot):
         self.dbg(conn,event)
     def on_kick(self,conn,event):
         self.dbg(conn,event)
+    def on_quit(self,conn,event):
+        self.dbg(conn,event)
 
     def on_disconnect(self,conn,event):
         self.dbg(conn,event)
@@ -253,6 +255,12 @@ class IrcBot(irc.bot.SingleServerIRCBot):
     #also ends the main loop gracefully
     def quit(self, reason):
         self.log('info', 'Quit (%s)' % reason)
+
+        #unload all plugins
+        self.plugins.unloadAll(self)
+        #save the config, in case it was modified
+        self.saveConfig()
+
         self.connection.quit(reason)
         self.die()
 
@@ -289,12 +297,6 @@ class IrcBot(irc.bot.SingleServerIRCBot):
         return True
 
 
-    #some cleanup on quit
-    def on_quit(self,conn,event):
-        #unload all plugins
-        self.plugins.unloadAll(self)
-        #save the config, in case it was modified
-        self.saveConfig()
 
 def main():
     #ugly commandline parsing
