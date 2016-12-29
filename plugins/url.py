@@ -64,7 +64,7 @@ def getUrlTitle(url, enc=['utf8', 'shift-jis', 'ISO-8859', 'Windows-1251', 'euc-
 
         #read in chunks, up to 1mb
         chunkSize = 1024
-        for i in range(0, 1024*1024*1024, chunkSize):
+        for i in range(0, 1024*1024, chunkSize):
             chunk = resp.read(chunkSize)
             parser.feed(chunk)
             if parser.done:
