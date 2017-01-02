@@ -1,6 +1,3 @@
-#!/usr/bin/python
-# -*- coding: utf-8 -*-
-
 import sqlite3
 import os
 import _thread
@@ -16,43 +13,31 @@ rules = {
         "pron":"AND wordtype LIKE '%pron.%'",
 }
 
-def acr(bot,msg):
-    _thread.start_new_thread(acr_thread, (bot, msg))
+@yui.command('acr')
+def acr(channel, argv):
+    _thread.start_new_thread(acr_thread, (channel, argv))
 
-def acr_thread(bot, msg):
-    args = msg.msg.split(' ')
-    if len(args) < 2 or args[0] != '!acr':
+def acr_thread(channel, argv):
+    if len(argv) < 2 or len(argv) > 10:
         return
-
-    if len(args[1]) > 10:
-        bot.sendMessage(msg.replyTo, msg.user+': fuck off')
-        return
-
 
     arg = 1
     words = ''
     path = os.path.join(os.path.dirname(__file__),'dict.sqlite')
     con = sqlite3.connect(path)
     with con:
-        for c in args[1]:
+        for c in argv[1]:
             rule = ""
             arg += 1
-            if arg < len(args) and len(args[arg]) > 0:
-                if args[arg] in rules:
-                    rule = rules[args[arg]]
+            if arg < len(argv) and len(argv[arg]) > 0:
+                if argv[arg] in rules:
+                    rule = rules[argv[arg]]
                 else:
-                    words += args[arg] + ' '
+                    words += argv[arg] + ' '
                     continue;
             cur = con.cursor()
             cur.execute("SELECT LOWER(word) FROM entries WHERE LOWER(word) LIKE '"+c+"%' "+rule+" ORDER BY RANDOM() LIMIT 1;")
             row = cur.fetchone()
             if row != None:
                 words += (row[0] + ' ')
-    bot.sendMessage(msg.replyTo, '"%s": %s' % (args[1], words))
-
-
-def init(bot):
-    bot.events.register('messageRecv',acr)
-
-def close(bot):
-    bot.events.unregister('messageRecv',acr)
+    yui.sendMessage(channel, '"%s": %s' % (argv[1], words))
