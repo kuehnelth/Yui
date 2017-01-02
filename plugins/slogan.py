@@ -1,6 +1,3 @@
-#!/usr/bin/python
-# -*- coding: utf-8 -*-
-
 import re
 import random
 
@@ -49,19 +46,10 @@ slogans = [
     "Get N or get {0}."
 ]
 
-def slogan(bot, msg):
-    if not msg.msg.startswith("!slogan"):
-        return
-    name = msg.user
-    split = msg.msg.split(' ', 1)
-    if len(split) > 1:
-        name = split[1]
+@yui.command('slogan','slg')
+def slogan(argv,user):
+    if len(argv) > 1:
+        user = argv[1]
     response = random.choice(slogans)
-    formatted = response.format(name)
-    bot.sendMessage(msg.replyTo,'"%s"' % formatted)
-
-def init(bot):
-    bot.events.register('messageRecv', slogan)
-
-def close(bot):
-    bot.events.unregister('messageRecv', slogan)
+    formatted = response.format(user)
+    return '"%s"' % formatted

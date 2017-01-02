@@ -1,5 +1,3 @@
-#!/usr/bin/python
-
 import re
 import random
 
@@ -242,19 +240,9 @@ def analyze(statement):
             response = random.choice(responses)
             return response.format(*[reflect(g) for g in match.groups()])
 
-
-def eliza(bot, msg):
-    if not msg.msg.startswith('!eliza'):
-        return
-
-    split = msg.msg.split(' ', 1)
-    if len(split) < 2 or len(split[1]) < 1:
-        bot.sendMessage(msg.replyTo, 'Hello, %s. How are you feeling today?' % msg.user)
+@yui.command('eliza')
+def eliza(user,argv):
+    if len(argv) < 2:
+        return 'Hello, %s. How are you feeling today?' % user
     else:
-        bot.sendMessage(msg.replyTo, '%s: %s' % (msg.user, analyze(split[1])))
-
-def init(bot):
-    bot.events.register('messageRecv', eliza)
-
-def close(bot):
-    bot.events.unregister('messageRecv', eliza)
+        return '%s: %s' % (user, analyze(' '.join(argv[1:])))

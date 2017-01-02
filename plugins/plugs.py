@@ -1,42 +1,29 @@
-#!/usr/bin/python
-# -*- coding: utf-8 -*-
-
-def plugs(bot, msg):
-    if msg.user not in bot.config['admins']:
-        return
-
-    split = msg.msg.split(' ')
-    if len(split) < 2:
+@yui.command('plug')
+@yui.perm('admin','moderator')
+def plug(argv):
+    if len(argv) < 2:
         return;
 
-    plugName = split[1]
-
     #(re)load plugin
-    if split[0] == '!plug':
-        try:
-            if bot.plugins.load(plugName,bot):
-                bot.sendMessage(msg.replyTo, 'Loaded %s' % plugName)
-                return
-        except Exception as ex:
-            pass
+    try:
+        if yui.loadPlugin(argv[1]):
+            return 'Loaded %s' % argv[1]
+    except Exception as ex:
+        pass
 
-        #plugin couldn't be loaded
-        bot.sendMessage(msg.replyTo, 'Couldn\'t load %s' % plugName)
-        return
+    #plugin couldn't be loaded
+    return 'Couldn\'t load %s' % argv[1]
 
+@yui.command('unplug')
+@yui.perm('admin','moderator')
+def unplug(argv):
+    if len(argv) < 2:
+        return;
     #unload plugin
-    elif split[0] == '!unplug':
-        try:
-            if bot.plugins.unload(split[1],bot):
-                bot.sendMessage(msg.replyTo, 'Unloaded %s' % plugName)
-                return
-        except Exception as ex:
-            pass
-        #plugin couldn't be properly unloaded
-        bot.sendMessage(msg.replyTo, 'Couldn\'t unload %s' % plugName)
-
-def init(bot):
-    bot.events.register('messageRecv',plugs)
-
-def close(bot):
-    bot.events.unregister('messageRecv',plugs)
+    try:
+        if yui.unloadPlguin(argv[1]):
+            return 'Unloaded %s' % argv[1]
+    except Exception as ex:
+        pass
+    #plugin couldn't be properly unloaded
+    return 'Couldn\'t unload %s' % argv[1]

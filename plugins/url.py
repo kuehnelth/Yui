@@ -1,6 +1,3 @@
-#!/usr/bin/python
-# -*- coding: utf-8 -*-
-
 import re
 import urllib.request
 import html.parser
@@ -81,9 +78,10 @@ def getUrlTitle(url):
                     pass
         return title
 
-def url(bot, msg):
+@yui.event('msgRecv')
+def url(msg,channel):
     #find urls in channel message
-    words = msg.msg.split(' ')
+    words = msg.split(' ')
     titles = []
     maxUrls = 5
     foundTitle = False
@@ -107,11 +105,4 @@ def url(bot, msg):
     #don't say anything, if we couldn't get any titles
     if foundTitle:
         concat = ', '.join(titles)
-        bot.sendMessage(msg.replyTo, concat)
-
-
-def init(bot):
-    bot.events.register('messageRecv',url)
-
-def close(bot):
-    bot.events.unregister('messageRecv',url)
+        yui.sendMessage(channel, concat)
