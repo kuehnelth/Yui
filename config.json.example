@@ -9,6 +9,7 @@
         "yournamegoeshere"
     ],
     "moderator": [],
+    "commandPrefixes": ["!"],
     "pluginDir": "plugins",
     "pluginAutoLoad": [
         "urbandict",
