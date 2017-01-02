@@ -19,7 +19,7 @@ def join(argv, channel):
         yui.part(channel)
     else:
         for ch in argv[1:]:
-            yui.join(ch)
+            yui.part(ch)
 
 @yui.command('quit')
 @yui.perm('admin')
