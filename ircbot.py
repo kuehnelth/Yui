@@ -151,8 +151,6 @@ class Yui(irc.bot.SingleServerIRCBot):
     def quit(self, reason):
         self.log('info', 'Quit (%s)' % reason)
 
-        #unload all plugins
-        self.plugins.unloadAll(self)
         #save the config, in case it was modified
         self.saveConfig()
 
@@ -173,6 +171,7 @@ class Yui(irc.bot.SingleServerIRCBot):
             if eventName != 'log':
                 self.log('error', 'Exception occurred processing event "%s": %s' % (eventName, repr(ex)))
 
+    #check if a user has a certain permission
     def checkPerm(self, user, perm):
         if perm not in self.config:
             return False
@@ -180,6 +179,8 @@ class Yui(irc.bot.SingleServerIRCBot):
             return False
         return True
 
+    #check if a user has any of the given permissions
+    #returns false for an empty list
     def checkAnyPerm(self,user,perm):
         if not perm:
             return True
@@ -251,8 +252,12 @@ class Yui(irc.bot.SingleServerIRCBot):
     def unloadPlugin(self,name):
         #TODO
         toDel = [f for f,h in self.hooks.items() if h.plugin == name]
+        if len(toDel) < 1:
+            return False
+        print(toDel)
         for d in toDel:
             del self.hooks[d]
+        return True
 
     #load all plugins specified in the pluginAutoLoad config
     def autoloadPlugins(self):
@@ -271,23 +276,25 @@ class Yui(irc.bot.SingleServerIRCBot):
         return
 
     #combines on_privmsg and on_pubmsg
-    #TODO: check permissions
+    #TODO: threading
     def on_msg(self, user, channel, msg):
         #fire generic event
         self.fireEvent('msgRecv', user = user,
                                   msg = msg,
                                   channel = channel)
+
+        hooks = self.hooks.copy()
         #parse command
         if msg.startswith(tuple(self.config['commandPrefixes'])):
             argv = list(csv.reader([msg[1:]], delimiter=' ', quotechar='"', skipinitialspace=True))[0]
             #look for a hook registered to this command
-            for f,h in self.hooks.items():
+            for f,h in hooks.items():
                 if argv[0] in h.cmd and self.checkAnyPerm(user, h.perm):
                     ret = h(user=user,channel=channel,msg=msg,argv=argv)
                     if ret:
                         self.sendMessage(channel, ret)
         #match regex
-        for f,h in self.hooks.items():
+        for f,h in hooks.items():
             for reg in h.regex:
                 match = reg.match(msg)
                 if match:
@@ -315,7 +322,7 @@ class Yui(irc.bot.SingleServerIRCBot):
     def on_disconnect(self,conn,event):
         self.dbg(conn,event)
         self.log('info','disconnected')
-        self.fireEvent('disconnect', self)
+        self.fireEvent('disconnect')
 
 
     def on_privmsg(self,conn,event):
