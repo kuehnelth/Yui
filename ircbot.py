@@ -151,9 +151,6 @@ class Yui(irc.bot.SingleServerIRCBot):
     def quit(self, reason):
         self.log('info', 'Quit (%s)' % reason)
 
-        #save the config, in case it was modified
-        self.saveConfig()
-
         self.connection.quit(reason)
         self.die()
 
