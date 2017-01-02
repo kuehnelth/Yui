@@ -4,233 +4,128 @@
 import imp
 import os
 import re
-import json
+import json #reading/writing config
+import csv #parsing commands
 import irc.bot
 import irc.strings
 
+import inspect #inspecting hook arguments
+import builtins #setting yui as a builtin
 
-
-from collections import namedtuple
 from collections import deque
 from collections import OrderedDict
 
-IrcMsg = namedtuple('IrcMsg', ['channel', 'user', 'msg', 'replyTo'])
+class Hook:
+    def __init__(self, func):
+        self.plugin = None #plugin name, for unregistering hooks when needed
+        self.func = func #hook callable
+        self.regex = [] #list of compiled regexes
+        self.cmd = [] #list of commands to call this hook for
+        self.perm = [] #list of people permitted to use the command
+        self.event = [] #list of events to call this hook for
+        self.threaded = False #whether or not the hook should be called in a separate thread
 
-class EventManager(list):
-    def __call__(self, *args, **kwargs):
-        for handler in self:
-            handler(*args, **kwargs)
-
-    def __init__(self):
-        self.events = {}
-        self.__eventBuffer = deque()
-
-    #register a callback function to an event
-    #simply creates the event, if no function is given
-    def register(self, eventName, function = None, priority = 9999):
-        if not eventName in self.events:
-            self.events[eventName] = []
-        if not function:
-            return True
-        self.events[eventName].append((priority, function))
-
-    #unregister a function form an event
-    def unregister(self, eventName, function):
-        if not eventName in self.events:
-            return False
-        self.events[eventName] = [(prio, func) for prio, func in self.events[eventName] if func != function]
-
-    #execute an event
-    def fire(self, eventName, *args, **kwargs):
-        if not eventName in self.events:
-            return
-
-        #currently processing an event, so push the new one into the queue
-        if len(self.__eventBuffer) > 0:
-            self.__eventBuffer.append((eventName, args, kwargs))
-            return
-
-        #push current event onto queue and process it, and all further added events
-        self.__eventBuffer.append((eventName, args, kwargs))
-
-        #store one exception and re-raise it after processing all event handlers
-        #so we don't skip any handlers if something goes wrong in only one of them
-        #TODO: make this less of an ugly hack
-        exception = None
-
-        while len(self.__eventBuffer) > 0:
-            en, a, kwa = self.__eventBuffer[0]
-            for prio, func in self.events[en]:
-                #try:
-                    func(*a, **kwa)
-                #except Exception as ex:
-                #    exception = ex
-            self.__eventBuffer.popleft()
-
-        #raise the last exception we saw, if we had one
-        if exception:
-            raise exception
-
-class PluginLoader(object):
-    #root: root dir for plugins
-    def __init__(self, root):
-        self.plugins = {}
-        self.rootDir = root
-
-    #loads a given .py file as a plugin
-    #calls its init() function, if it has one
-    #if a path to a directory is given, it tries to load a .py file in that,
-    #if it has the same name as the dir
-    def load(self, name, *args, **kwargs):
-        name = os.path.basename(name)
-        filepath = os.path.join(self.rootDir, name)
-
-        #try to load plugin in subdir
-        if os.path.isdir(filepath):
-            filepath = os.path.join(filepath,name)
-
-        filepath += '.py'
-        if not os.path.exists(filepath):
-            return False
-
-        #unload and then re-load, if the plugin is already loaded
-        if name in self.plugins:
-            self.unload(name, *args, **kwargs)
-
-        plugin = imp.load_source(name, filepath)
-
-        #check if the plugin contains an init() function
-        #and call it
-        if plugin and callable(getattr(plugin, "init", None)):
-            plugin.init(*args,**kwargs)
-            self.plugins[name] = plugin
-        return True
-
-    #loads all plugins in the plugin root
-    def loadAll(self, *args, **kwargs):
-        for f in os.listdir(self.rootDir):
-            if os.path.isdir(os.path.join(self.rootDir,f)) or f.endswith('.py'):
-                self.load(f.rstrip('.py'), *args, **kwargs)
-
-    #unload a plugin given its name
-    def unload(self, name, *args, **kwargs):
-        plugin = self.plugins.pop(name, None)
-        if plugin:
-            if callable(getattr(plugin, "close", None)):
-                plugin.close(*args, **kwargs)
-            return True
-        return False
-
-    def unloadAll(self, *args, **kwargs):
-        plugs = list(self.plugins.keys())
-        for name in plugs:
-            self.unload(name, *args, **kwargs)
+    #unpack kwargs, match their keys to the hook's normal args' names
+    #and pass them accordingly
+    #args not in the hook's signature are ignored, and args that are in the
+    #signature, but not in kwargs, are passed as None
+    def __call__(self, **kwargs):
+        argNames = inspect.getargspec(self.func).args #list of argument names
+        args = [] #argument list to pass
+        for name in argNames:
+            if name in kwargs.keys():
+                args.append(kwargs[name])
+            else:
+                args.append(None)
+        return self.func(*args)
 
 
-
-class IrcBot(irc.bot.SingleServerIRCBot):
+class Yui(irc.bot.SingleServerIRCBot):
     def __init__(self, configPath):
-        self.configPath = configPath
-        self.config = None
-
-        self.plugins = None
-
-        #register some events
-        self.events = EventManager()
-        self.events.register('messageSend')
-        self.events.register('messageRecv')
-        self.events.register('log')
-        self.events.register('postConnect')
-        self.events.register('disconnect')
+        builtins.yui = self
 
         #load config
+        self.configPath = configPath
+        self.config = None
         if not self.loadConfig():
             quit()
 
         #load plugins
-        if not self.loadPlugins():
+        self.plugins = []
+        self.loadingPlugin = None
+        self.hooks = {} #dict containing hook callable -> Hook object
+        if not self.autoloadPlugins():
             quit()
 
-        #start server
+        #init SingleServerIRCBot
         irc.bot.SingleServerIRCBot.__init__(self, [(self.config['server'], self.config['port'])], self.config['nick'], self.config['nick'])
 
-    def dbg(self,conn,event):
-        #print(conn)
-        #print(event)
-        return
 
-    def on_join(self,conn,event):
-        self.dbg(conn,event)
-    def on_namreply(self,conn,event):
-        self.dbg(conn,event)
-    def on_part(self,conn,event):
-        self.dbg(conn,event)
-    def on_nick(self,conn,event):
-        self.dbg(conn,event)
-    def on_mode(self,conn,event):
-        self.dbg(conn,event)
-    def on_kick(self,conn,event):
-        self.dbg(conn,event)
-    def on_quit(self,conn,event):
-        self.dbg(conn,event)
+    ################################################################################
+    # decorators for hooks in plugins
+    ################################################################################
 
-    def on_disconnect(self,conn,event):
-        self.dbg(conn,event)
-        self.log('info','disconnected')
-        self.fireEvent('disconnect', self)
+    #return a hook by function
+    #or create a new one and return that
+    def getHook(self, func):
+        if func in self.hooks:
+            return self.hooks[func]
+        h = Hook(func)
+        self.hooks[func] = h
+        return h
 
-    def on_privmsg(self,conn,event):
-        self.dbg(conn,event)
-        evMsg = IrcMsg(channel=conn.get_nickname(),
-                        user=event.source.nick,
-                        msg=event.arguments[0],
-                        replyTo=event.source.nick)
-        self.fireEvent('messageRecv', self, evMsg)
+    #decorator for simple commands
+    def command(self, *names):
+        def command_dec(f):
+            h = self.getHook(f)
+            h.plugin = self.loadingPlugin
+            h.cmd.extend(names)
+            return f
+        return command_dec
 
-    def on_pubmsg(self,conn,event):
-        self.dbg(conn,event)
-        evMsg = IrcMsg(channel=event.target,
-                        user=event.source.nick,
-                        msg=event.arguments[0],
-                        replyTo=event.target)
-        self.fireEvent('messageRecv', self, evMsg)
+    #decorator for matching regex against messages
+    def regex(self,*reg):
+        def regex_dec(f):
+            h = self.getHook(f)
+            h.plugin = self.loadingPlugin
+            #compile all regexs
+            for r in reg:
+                h.regex.append(re.compile(r))
+            return f
+        return regex_dec
 
-    #servers tend to not take joins etc. before they sent a welcome msg
-    def on_welcome(self,conn,event):
-        self.dbg(conn,event)
-        self.log('info','connected!')
-        self.fireEvent('postConnect', self)
+    #decorator for setting needed permissions on a command
+    def perm(self,*perm):
+        def perm_dec(f):
+            h = self.getHook(f)
+            h.plugin = self.loadingPlugin
+            h.perm.extend(perm)
+            return f
+        return perm_dec
 
-    #append our nick is in use, append a _
-    def on_nicknameinuse(self, conn, event):
-        self.dbg(conn,event)
-        self.log('warn','nick %s already in use' % self.getNick())
-        self.setNick(self.getNick() + '_')
+    #decorator for other events
+    def event(self, *ev):
+        def event_dec(f):
+            h = self.getHook(f)
+            h.plugin = self.loadingPlugin
+            h.event.extend(ev)
+            return f
+        return event_dec
 
-    def on_connect(self, conn, event):
-        return
+    def threaded(self, f):
+        h = self.getHook(f)
+        h.threaded = True
+        return f
 
-    #wrapper for EventManager.fire()
-    #to handle any exceptions (i.e. crash-proofing plugins a bit)
-    def fireEvent(self, eventName, *args, **kwargs):
-        try:
-            self.events.fire(eventName, *args, **kwargs)
-        except Exception as ex:
-            self.log('error', 'Exception occurred processing event "%s": %s' % (eventName, repr(ex)))
 
-    #prints to stdout and fires the 'log' event
-    def log(self, level, msg):
-        print('[%s] %s'% (level, msg))
-        self.fireEvent('log',self,level,msg)
+    ################################################################################
+    # irc functions
+    ################################################################################
 
     #send a message to a channel/user
     def sendMessage(self, channel, msg):
         self.connection.privmsg(channel, msg)
-        evMsg = IrcMsg(channel = channel,
-                        user= self.getNick(),
-                        msg = msg,
-                        replyTo = channel)
-        self.fireEvent('channelMessageSend',self,evMsg)
+        self.fireEvent('msgSend', channel = channel, msg = msg)
 
     #get the current bot's nick
     def getNick(self):
@@ -264,6 +159,40 @@ class IrcBot(irc.bot.SingleServerIRCBot):
         self.connection.quit(reason)
         self.die()
 
+
+    ################################################################################
+    # other bot functions
+    ################################################################################
+
+    def fireEvent(self, eventName, **kwargs):
+        try:
+            for f,h in self.hooks.items():
+                if eventName in h.event:
+                    h(**kwargs)
+        except Exception as ex:
+            if eventName != 'log':
+                self.log('error', 'Exception occurred processing event "%s": %s' % (eventName, repr(ex)))
+
+    def checkPerm(self, user, perm):
+        if perm not in self.config:
+            return False
+        if user not in self.config[perm]:
+            return False
+        return True
+
+    def checkAnyPerm(self,user,perm):
+        if not perm:
+            return True
+        for p in perm:
+            if self.checkPerm(user,p):
+                return True
+        return False
+
+    #prints to stdout and fires the 'log' event
+    def log(self, level, msg):
+        print('[%s] %s'% (level, msg))
+        self.fireEvent('log',level=level,msg=msg)
+
     def loadConfig(self):
         try:
             with open(self.configPath) as f:
@@ -284,18 +213,130 @@ class IrcBot(irc.bot.SingleServerIRCBot):
             return False
         return True
 
-    #load all plugins
-    def loadPlugins(self):
-        self.log('info', 'Loading plugins')
+    #loads a given .py file as a plugin
+    #calls its init() function, if it has one
+    #if a path to a directory is given, it tries to load a .py file in that,
+    #if it has the same name as the dir
+    def loadPlugin(self, name):
         try:
-            self.plugins = PluginLoader(self.config['pluginDir'])
-            for p in self.config['pluginAutoLoad']:
-                self.plugins.load(p, self)
+            name = os.path.basename(name)
+            filepath = os.path.join(self.config['pluginDir'], name)
+
+            #try to load plugin in subdir
+            if os.path.isdir(filepath):
+                filepath = os.path.join(filepath,name)
+
+            filepath += '.py'
+            if not os.path.exists(filepath):
+                self.log('error', "Plugin '%s' not found" % name)
+                return False
+
+            #unload and then re-load, if the plugin is already loaded
+            if name in self.plugins:
+                self.unloadPlugin(name)
+
+            #set the currently loading plugin name
+            #TODO
+            self.loadingPlugin = name
+
+            plugin = imp.load_source(name, filepath)
+
         except Exception as ex:
-            self.log('fatal', 'Exception occurred while loading plugins: %s' % repr(ex))
+            self.log('fatal', "Exception occurred while loading plugin '%s': %s" % (name, repr(ex)))
             return False
+
+        self.log('info', 'Loaded plugin %s' % name)
         return True
 
+    def unloadPlugin(self,name):
+        #TODO
+        toDel = [f for f,h in self.hooks.items() if h.plugin == name]
+        for d in toDel:
+            del self.hooks[d]
+
+    #load all plugins specified in the pluginAutoLoad config
+    def autoloadPlugins(self):
+        for p in self.config['pluginAutoLoad']:
+            if not self.loadPlugin(p):
+                return False
+        return True
+
+    ################################################################################
+    # SingleServerIRCBot callbacks
+    ################################################################################
+
+    def dbg(self,conn,event):
+        #print(conn)
+        #print(event)
+        return
+
+    #combines on_privmsg and on_pubmsg
+    #TODO: check permissions
+    def on_msg(self, user, channel, msg):
+        #fire generic event
+        self.fireEvent('msgRecv', user = user,
+                                  msg = msg,
+                                  channel = channel)
+        #parse command
+        if msg.startswith(tuple(self.config['commandPrefixes'])):
+            argv = list(csv.reader([msg[1:]], delimiter=' ', quotechar='"', skipinitialspace=True))[0]
+            #look for a hook registered to this command
+            for f,h in self.hooks.items():
+                if argv[0] in h.cmd and self.checkAnyPerm(user, h.perm):
+                    ret = h(user=user,channel=channel,msg=msg,argv=argv)
+                    if ret:
+                        self.sendMessage(channel, ret)
+        #match regex
+        for f,h in self.hooks.items():
+            for reg in h.regex:
+                match = reg.match(msg)
+                if match:
+                    ret = h(user=user,channel=channel,msg=msg,groups=match.groupdict())
+                    if ret:
+                        self.sendMessage(channel, ret)
+
+    def on_join(self,conn,event):
+        self.dbg(conn,event)
+    def on_namreply(self,conn,event):
+        self.dbg(conn,event)
+    def on_part(self,conn,event):
+        self.dbg(conn,event)
+    def on_nick(self,conn,event):
+        self.dbg(conn,event)
+    def on_mode(self,conn,event):
+        self.dbg(conn,event)
+    def on_kick(self,conn,event):
+        self.dbg(conn,event)
+    def on_connect(self, conn, event):
+        self.dbg(conn,event)
+    def on_quit(self,conn,event):
+        self.dbg(conn,event)
+
+    def on_disconnect(self,conn,event):
+        self.dbg(conn,event)
+        self.log('info','disconnected')
+        self.fireEvent('disconnect', self)
+
+
+    def on_privmsg(self,conn,event):
+        self.dbg(conn,event)
+        self.on_msg(event.source.nick,event.source.nick,event.arguments[0])
+
+    def on_pubmsg(self,conn,event):
+        self.dbg(conn,event)
+        self.on_msg(event.source.nick, event.target, event.arguments[0])
+
+    #servers tend to not take joins etc. before they sent a welcome msg
+    def on_welcome(self,conn,event):
+        self.dbg(conn,event)
+        self.log('info','connected!')
+        self.fireEvent('connect')
+
+    #append our nick is in use, append a _
+    def on_nicknameinuse(self, conn, event):
+        self.dbg(conn,event)
+        self.log('warn','nick %s already in use' % self.getNick())
+        self.setNick(self.getNick() + '_')
 
 
 def main():
@@ -304,8 +345,9 @@ def main():
     conf = "config.json"
     if len(sys.argv) > 1:
         conf = sys.argv[1]
-    bot = IrcBot(conf)
-    bot.start()
+    y = Yui(conf)
+    y.start()
+
 
 if __name__ == "__main__":
     main()

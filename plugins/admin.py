@@ -1,41 +1,36 @@
-#!/usr/bin/python
-# -*- coding: utf-8 -*-
+@yui.command('admin')
+def admin():
+    return 'Admins: [%s], Mods: [%s]' % (','.join(yui.config['admin']), ','.join(yui.config['moderator']))
 
-def admin(bot,msg):
-    if msg.msg.startswith('!admin'):
-        bot.sendMessage(msg.replyTo, 'Admins: [%s], Mods: [%s]' % (','.join(bot.config['admins']), ','.join(bot.config['moderators'])))
-        return
+@yui.command('source')
+def source():
+    return 'https://github.com/Rj48/ircbot'
 
-    if msg.msg.startswith('!source'):
-        bot.sendMessage(msg.replyTo, 'https://github.com/Rj48/ircbot')
-        return
+@yui.command('join')
+@yui.perm('admin','moderator')
+def join(argv):
+    for ch in argv[1:]:
+        yui.join(ch)
 
-    #admin commands below
-    if msg.user not in bot.config['admins']:
-        return
+@yui.command('part')
+@yui.perm('admin','moderator')
+def join(argv, channel):
+    if len(argv) < 2:
+        yui.part(channel)
+    else:
+        for ch in argv[1:]:
+            yui.join(ch)
 
-    split = msg.msg.split(' ', 1)
-    if len(split) > 1 and split[0] == '!join':
-        bot.join(split[1])
-    elif split[0] == '!part':
-        if len(split) > 1:
-            bot.part(split[1])
-        else:
-            bot.part(msg.channel)
-    elif split[0] == '!quit':
-        if len(split) > 1:
-            bot.quit(split[1])
-        else:
-            bot.quit('')
-    elif len(split) > 1 and split[0] == '!nick':
-        bot.setNick(split[1])
-    elif len(split) > 1 and split[0].startswith('!echo'):
-            split = split[1].split(' ', 1)
-            if len(split) > 1:
-                bot.sendMessage(split[0], split[1])
+@yui.command('quit')
+@yui.perm('admin')
+def quit(argv):
+    if len(argv) < 2:
+        yui.quit()
+    else:
+        yui.quit(argv[1])
 
-def init(bot):
-    bot.events.register('messageRecv',admin)
-
-def close(bot):
-    bot.events.unregister('messageRecv',admin)
+@yui.command('nick')
+@yui.perm('admin','moderator')
+def nick(argv):
+    if len(argv) > 1:
+        yui.setNick(argv[1])

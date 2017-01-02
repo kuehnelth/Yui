@@ -2,14 +2,13 @@
     "server": "irc.example.com",
     "port": 6667,
     "ssl": false,
-    "timeout": 600,
     "user": "yetanotherbot",
     "password": "",
     "nick": "YAB",
-    "admins": [
+    "admin": [
         "yournamegoeshere"
     ],
-    "moderators": [],
+    "moderator": [],
     "pluginDir": "plugins",
     "pluginAutoLoad": [
         "urbandict",
