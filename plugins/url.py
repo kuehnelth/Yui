@@ -105,4 +105,4 @@ def url(msg,channel):
     #don't say anything, if we couldn't get any titles
     if foundTitle:
         concat = ', '.join(titles)
-        yui.sendMessage(channel, concat)
+        yui.send_msg(channel, concat)

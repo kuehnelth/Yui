@@ -40,4 +40,4 @@ def acr_thread(channel, argv):
             row = cur.fetchone()
             if row != None:
                 words += (row[0] + ' ')
-    yui.sendMessage(channel, '"%s": %s' % (argv[1], words))
+    yui.send_msg(channel, '"%s": %s' % (argv[1], words))

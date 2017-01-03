@@ -35,4 +35,4 @@ def greetings(msg,user,channel):
     if msg.lower().startswith(botnick):
         suffix = msg[len(botnick):]
         if not suffix or re.match(r'^[o<>/\\!\?\. ]+$',suffix) is not None:
-            yui.sendMessage(channel, user + suffix)
+            yui.send_msg(channel, user + suffix)

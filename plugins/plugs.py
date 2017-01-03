@@ -6,7 +6,7 @@ def plug(argv):
 
     #(re)load plugin
     try:
-        if yui.loadPlugin(argv[1]):
+        if yui.load_plugin(argv[1]):
             return 'Loaded %s' % argv[1]
     except Exception as ex:
         pass
