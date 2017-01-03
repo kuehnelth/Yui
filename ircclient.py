@@ -2,6 +2,7 @@ import errno
 import re
 import socket
 import ssl
+import threading
 import time
 
 
@@ -38,20 +39,28 @@ class IRCClient(object):
             # TODO: compile regex
             stripped = re.sub('[' + bad_chars + ']+', '', msg)
 
+            # clamp length
+            if len(stripped) > 400:
+                stripped = stripped[:400]
+
             stripped += '\r\n'
             utf8 = stripped.encode(self.encoding)
 
-            # clamp length
-            if len(utf8) > 400:
-                utf8 = utf8[:400]
-
             self.socket.send(utf8)
+
         except TypeError as ex:
-            return False
+            return False  # invalid msg
+        except Exception as ex:
+            # something else went horribly wrong, disconnect
+
+            self.on_log('Exception while sending data: %s' % repr(ex))
+            self.disconnect()
         return True
 
     # send a message to a channel/user
     def send_privmsg(self, channel, msg):
+        if not channel or not msg:
+            return
         self.send_raw('PRIVMSG %s :%s' % (channel, msg))
 
     # set the nick
@@ -108,7 +117,7 @@ class IRCClient(object):
         nick = self.nick_from_prefix(prefix)
         if nick == self.nick:
             self.nick = nick
-        self.on_nick(self, nick, args[0])
+        self.on_nick(nick, args[0])
 
     def cmd_PING(self, prefix, args):
         self.send_raw('PONG :%s' % args[0])
@@ -201,16 +210,26 @@ class IRCClient(object):
 
             # main recv loop
             recv = ''
-            lastTime = time.time()  # timestamp for detecting timeouts
+            last_time = time.time()  # timestamp for detecting timeouts
+            sent_ping = False
             while not self.quitting:
                 try:
                     now = time.time()
-                    if (now - lastTime) > self.timeout:
+                    diff = now - last_time
+
+                    # send a ping at half the timeout
+                    if diff > self.timeout/2.0 and not sent_ping:
+                        self.send_raw('PING :%s' % self.nick)
+                        sent_ping = True
+
+                    # no messages received after timeout, try to reconnect
+                    if diff > self.timeout:
                         break
 
                     recv += self.socket.recv(4098).decode(self.encoding)
 
-                    lastTime = now
+                    last_time = now
+                    sent_ping = False
                 except socket.error as e:
                     err = e.args[0]
                     # sleep for a short time, if no data was received
@@ -218,6 +237,7 @@ class IRCClient(object):
                         time.sleep(0.1)
                         continue
                 except Exception as ex:
+                    self.on_log('Exception occurred receiving data: %s' % repr(ex))
                     break  # break inner loop, try to reconnect
 
                 # split received data into messages and process them
@@ -229,4 +249,5 @@ class IRCClient(object):
                         self.handle_server_cmd(prefix, cmd, args)
 
             self.disconnect()
+
         return True
