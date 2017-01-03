@@ -4,7 +4,7 @@ def admin():
 
 @yui.command('source')
 def source():
-    return 'https://github.com/Rj48/ircbot'
+    return 'https://github.com/Rj48/Yui'
 
 @yui.command('join')
 @yui.perm('admin','moderator')
