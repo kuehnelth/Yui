@@ -2,6 +2,7 @@ import re
 import urllib.request
 import html.parser
 
+
 class TitleParser(html.parser.HTMLParser):
     def __init__(self):
         html.parser.HTMLParser.__init__(self)
@@ -30,37 +31,41 @@ class TitleParser(html.parser.HTMLParser):
         if self.reading:
             self.title += '&%s;' % ref
 
+
 def urlEncodeNonAscii(string):
     return re.sub('[\x80-\xFF]', lambda c: '%%%02x' % ord(c.group(0)), string)
 
-#returns a properly encoded url (escaped unicode etc)
-#or None if it's not a valid url
-def getEncodedUrl(url):
-    #test if it's a valid URL and encode it properly, if it is
+
+# returns a properly encoded url (escaped unicode etc)
+# or None if it's not a valid url
+def get_encoded_url(url):
+    # test if it's a valid URL and encode it properly, if it is
     parts = urllib.request.urlparse(url)
-    if not ((parts[0] == 'http' or parts[0] == 'https') and parts[1] and parts[1] != 'localhost' and not parts[1].split('.')[-1].isdigit()):
+    if not ((parts[0] == 'http' or parts[0] == 'https') and parts[1] and parts[1] != 'localhost' and not
+    parts[1].split('.')[-1].isdigit()):
         return None
 
-    #handle unicode URLs
+    # handle unicode URLs
     url = urllib.request.urlunparse(
-            p if i == 1 else urlEncodeNonAscii(p)
-            for i, p in enumerate(parts)
+        p if i == 1 else urlEncodeNonAscii(p)
+        for i, p in enumerate(parts)
     )
     return url
 
-def getUrlTitle(url):
-    enc='utf8'
+
+def get_url_title(url):
+    enc = 'utf8'
     title = ''
     parser = TitleParser()
     try:
         resp = urllib.request.urlopen(url, timeout=5)
 
-        #try the charset set in the html header first, if there is one
+        # try the charset set in the html header first, if there is one
         if 'content-type' in resp.headers and 'charset=' in resp.headers['content-type']:
             enc = resp.headers['content-type'].split('charset=')[-1]
 
-        #read up to 1mb
-        chunk = resp.read(1024*1024)
+        # read up to 1mb
+        chunk = resp.read(1024 * 1024)
         parser.feed(chunk.decode(enc))
         if parser.done:
             title = parser.title
@@ -78,15 +83,16 @@ def getUrlTitle(url):
                     pass
         return title
 
+
 @yui.event('msgRecv')
-def url(msg,channel):
-    #find urls in channel message
+def url(msg, channel):
+    # find urls in channel message
     words = msg.split(' ')
     titles = []
     maxUrls = 5
     foundTitle = False
     for w in words:
-        url = getEncodedUrl(w)
+        url = get_encoded_url(w)
         if not url:
             continue
 
@@ -94,15 +100,15 @@ def url(msg,channel):
         if maxUrls == 0:
             break
 
-        title = getUrlTitle(url)
+        title = get_url_title(url)
         if title:
-            title = ' '.join(title.split()) #remove leading/trailing spaces, reduce repeated spaces to just one
+            title = ' '.join(title.split())  # remove leading/trailing spaces, reduce repeated spaces to just one
             titles.append('"%s"' % title)
             foundTitle = True
         else:
             titles.append('[no title]')
 
-    #don't say anything, if we couldn't get any titles
+    # don't say anything, if we couldn't get any titles
     if foundTitle:
         concat = ', '.join(titles)
         yui.send_msg(channel, concat)

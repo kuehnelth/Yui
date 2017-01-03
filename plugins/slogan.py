@@ -47,7 +47,7 @@ slogans = [
 ]
 
 @yui.command('slogan','slg')
-def slogan(argv,user):
+def slogan(argv, user):
     if len(argv) > 1:
         user = argv[1]
     response = random.choice(slogans)

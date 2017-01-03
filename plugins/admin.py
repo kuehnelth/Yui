@@ -25,7 +25,7 @@ def join(argv, channel):
 @yui.perm('admin')
 def quit(argv):
     if len(argv) < 2:
-        yui.quit()
+        yui.quit("")
     else:
         yui.quit(argv[1])
 
@@ -33,4 +33,4 @@ def quit(argv):
 @yui.perm('admin','moderator')
 def nick(argv):
     if len(argv) > 1:
-        yui.setNick(argv[1])
+        yui.set_nick(argv[1])

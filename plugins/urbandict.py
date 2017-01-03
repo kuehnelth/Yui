@@ -1,8 +1,8 @@
 import urllib.request
 import json
-import csv
 
-@yui.command('ud','urban','urbandict')
+
+@yui.command('ud', 'urban', 'urbandict')
 def ud(argv):
     if len(argv) < 2:
         return
@@ -16,7 +16,7 @@ def ud(argv):
             idx = int(argv[2]) - 1
         url = 'http://api.urbandictionary.com/v0/define?term=%s' % urllib.request.quote(word.encode('utf-8'))
         resp = urllib.request.urlopen(url)
-        #get encoding
+        # get encoding
         enc = resp.headers['content-type'].split('charset=')[-1]
         content = resp.read().decode(enc)
         js = json.loads(content)

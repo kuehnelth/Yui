@@ -65,7 +65,8 @@ class Yui(IRCClient):
                            nick=self.config['nick'],
                            user=self.config['user'],
                            password=self.config['password'],
-                           realname=self.config['realname'])
+                           realname=self.config['realname'],
+                           timeout=self.config['timeout'])
 
     ################################################################################
     # decorators for hooks in plugins
@@ -135,6 +136,9 @@ class Yui(IRCClient):
     def send_msg(self, channel, msg):
         self.send_privmsg(channel, msg)
         self.fire_event('msgSend', channel=channel, msg=msg)
+
+    def get_nick(self):
+        return self.nick
 
     ################################################################################
     # other bot functions
@@ -245,16 +249,16 @@ class Yui(IRCClient):
         return True
 
     ################################################################################
-    # SingleServerIRCBot callbacks
+    # IRCClient callbacks
     ################################################################################
 
     # combines on_privmsg and on_pubmsg
     # TODO: threading
     def on_privmsg(self, nick, target, msg):
         # fire generic event
-        self.fire_event('msgRecv', nick=nick,
+        self.fire_event('msgRecv', user=nick,
                         msg=msg,
-                        target=target)
+                        channel=target)
 
         hooks = self.hooks.copy()
         # parse command
@@ -263,7 +267,7 @@ class Yui(IRCClient):
             # look for a hook registered to this command
             for f, h in hooks.items():
                 if argv[0] in h.cmd and self.check_perm_any(nick, h.perm):
-                    ret = h(nick=nick, target=target, msg=msg, argv=argv)
+                    ret = h(user=nick, channel=target, msg=msg, argv=argv)
                     if ret:
                         self.send_msg(target, ret)
         # match regex
@@ -271,15 +275,9 @@ class Yui(IRCClient):
             for reg in h.regex:
                 match = reg.match(msg)
                 if match:
-                    ret = h(nick=nick, target=target, msg=msg, groups=match.groupdict())
+                    ret = h(user=nick, channel=target, msg=msg, groups=match.groupdict())
                     if ret:
                         self.send_msg(target, ret)
-
-    def on_connect(self):
-        pass
-
-    def on_quit(self):
-        pass
 
     def on_log(self, error):
         self.log('error', error)
