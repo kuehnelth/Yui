@@ -1,13 +1,16 @@
-#!/usr/bin/python
-# -*- coding: utf-8 -*-
-
 import os
 import datetime
 
 logDir = ''
 logFile = None
 
-def log(bot,level,msg):
+logDir = os.path.dirname(__file__)
+logDir = os.path.join(logDir, 'logs')
+if not os.path.exists(logDir):
+    os.makedirs(logDir)
+
+@yui.event('log')
+def log(level,msg):
     global logDir
     global logFile
 
@@ -24,18 +27,3 @@ def log(bot,level,msg):
         logFile.writelines('%s [%s] %s\n' % (time,level,msg))
     except Exception as ex:
         pass
-
-
-def init(bot):
-    global logDir
-    logDir = os.path.dirname(__file__)
-    logDir = os.path.join(logDir, 'logs')
-    if not os.path.exists(logDir):
-        os.makedirs(logDir)
-    bot.events.register('log',log,0) #highest priority
-
-def close(bot):
-    bot.events.unregister('log',log)
-    if logFile:
-        logFile.close()
-

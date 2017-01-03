@@ -1,15 +1,18 @@
 {
     "server": "irc.example.com",
-    "port": 6667,
-    "ssl": false,
-    "timeout": 600,
+    "port": 6697,
+    "ssl": true,
+    "encoding": "utf-8",
     "user": "yetanotherbot",
     "password": "",
     "nick": "YAB",
-    "admins": [
-        "yournamegoeshere"
+    "realname": "abbot",
+    "timeout": 300,
+    "admin": [
+        "yournickgoeshere"
     ],
-    "moderators": [],
+    "moderator": [],
+    "commandPrefixes": ["!"],
     "pluginDir": "plugins",
     "pluginAutoLoad": [
         "urbandict",
