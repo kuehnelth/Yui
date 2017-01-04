@@ -215,8 +215,7 @@ class Yui(IRCClient):
                 return False
 
             # unload and then re-load, if the plugin is already loaded
-            if name in self.plugins:
-                self.unload_plugin(name)
+            self.unload_plugin(name)
 
             # set the currently loading plugin name
             # TODO
@@ -232,11 +231,9 @@ class Yui(IRCClient):
         return True
 
     def unload_plugin(self, name):
-        # TODO
         toDel = [f for f, h in self.hooks.items() if h.plugin == name]
         if len(toDel) < 1:
             return False
-        print(toDel)
         for d in toDel:
             del self.hooks[d]
         return True

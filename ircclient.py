@@ -32,7 +32,6 @@ class IRCClient(object):
 
     # send a raw line to the server
     def send_raw(self, msg):
-        print(msg)
         try:
             # strip newlines
             bad_chars = '\r\n'
@@ -84,7 +83,6 @@ class IRCClient(object):
     # parse a message received from the server and split it into manageable parts
     # *inspired by* twisted's irc implementation
     def parse_server_cmd(self, cmd):
-        print(cmd)
         prefix = ''
         trailing = []
         if not cmd:
