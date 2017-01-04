@@ -48,8 +48,9 @@ slogans = [
 
 @yui.command('slogan','slg')
 def slogan(argv, user):
+    """Spits out a slogan for a person or thing of your choosing. Usage: slogan [thing]"""
     if len(argv) > 1:
-        user = argv[1]
+        user = ' '.join(argv[1:])
     response = random.choice(slogans)
     formatted = response.format(user)
     return '"%s"' % formatted

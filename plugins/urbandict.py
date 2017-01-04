@@ -4,6 +4,7 @@ import json
 
 @yui.command('ud', 'urban', 'urbandict')
 def ud(argv):
+    """Urban Dictionary search. Usage: ud <term> [result nr.]"""
     if len(argv) < 2:
         return
 

@@ -1,6 +1,7 @@
 @yui.command('plug')
 @yui.perm('admin', 'moderator')
 def plug(argv):
+    """(Re-)loads a plugin. Usage: plug <plugin>"""
     if len(argv) < 2:
         return;
 
@@ -18,6 +19,7 @@ def plug(argv):
 @yui.command('unplug')
 @yui.perm('admin', 'moderator')
 def unplug(argv):
+    """Unloads a plugin. Usage: unplug <plugin>"""
     if len(argv) < 2:
         return;
     # unload plugin

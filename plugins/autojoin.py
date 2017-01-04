@@ -1,4 +1,4 @@
 @yui.event('connect')
-def autoJoin(level):
+def autoJoin():
     for c in yui.config['channels']:
         yui.join(c)
