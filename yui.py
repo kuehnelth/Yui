@@ -49,9 +49,7 @@ class Yui(IRCClient):
         if not self.load_config():
             quit()
 
-        # load plugins
-        self.plugins = []
-        self.loadingPlugin = None
+        self.loadingPlugin = None  # name of the currently loading plugin
         self.hooks = {}  # dict containing hook callable -> Hook object
         if not self.autoload_plugins():
             quit()
@@ -244,6 +242,13 @@ class Yui(IRCClient):
             if not self.load_plugin(p):
                 return False
         return True
+
+    def hook_by_cmd(self, cmd):
+        """return a hook by registered command"""
+        for f, h in self.hooks.items():
+            if cmd in h.cmd:
+                return h
+        return None
 
     ################################################################################
     # IRCClient callbacks
