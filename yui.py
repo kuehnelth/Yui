@@ -243,6 +243,10 @@ class Yui(IRCClient):
                 return False
         return True
 
+    def get_all_hooks(self):
+        """return a list containing all registered hooks"""
+        return self.hooks.values()
+
     def hook_by_cmd(self, cmd):
         """return a hook by registered command"""
         for f, h in self.hooks.items():
