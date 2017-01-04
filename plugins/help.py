@@ -39,4 +39,4 @@ def commands(argv):
                         cmds.append(c)
                         break
     if cmds:
-        return ', '.join(cmds)
+        return 'commands: ' + ', '.join(cmds)

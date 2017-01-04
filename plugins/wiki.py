@@ -4,7 +4,7 @@ MAX_LEN = 350
 
 @yui.command('wiki', 'wk', 'w')
 def wiki(argv):
-    """wiki [-lang] <article>"""
+    """Prints summary of Wikipedia atricles. Usage: wiki [-lang] <article>"""
     lang = 'en'
     if len(argv) < 2:
         return
