@@ -231,7 +231,7 @@ class IRCClient(object):
                 except socket.error as e:
                     err = e.args[0]
                     # sleep for a short time, if no data was received
-                    if err == errno.EAGAIN or err == errno.EWOULDBLOCK:
+                    if err == errno.EAGAIN or err == errno.EWOULDBLOCK or err == errno.ENOENT:
                         time.sleep(0.1)
                         continue
                 except Exception as ex:
