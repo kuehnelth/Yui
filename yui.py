@@ -1,17 +1,16 @@
 #!/usr/bin/env python3
 
-from ircclient import IRCClient
-
+import builtins  # setting yui as a builtin
+import csv  # parsing commands
 import imp
+import inspect  # inspecting hook arguments
+import json  # reading/writing config
 import os
 import re
-import json  # reading/writing config
-import csv  # parsing commands
-
-import inspect  # inspecting hook arguments
-import builtins  # setting yui as a builtin
-
+import sqlite3
 from collections import OrderedDict  # for more consistent settings saving
+
+from ircclient import IRCClient
 
 
 class Hook:
@@ -48,6 +47,8 @@ class Yui(IRCClient):
         self.config = None
         if not self.load_config():
             quit()
+
+        self.db = sqlite3.connect(self.config['sqlitePath'])
 
         self.loadingPlugin = None  # name of the currently loading plugin
         self.hooks = {}  # dict containing hook callable -> Hook object

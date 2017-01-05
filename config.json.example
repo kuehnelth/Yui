@@ -3,6 +3,7 @@
     "port": 6697,
     "ssl": true,
     "encoding": "utf-8",
+    "sqlitePath": "yui.db",
     "user": "yetanotherbot",
     "password": "",
     "nick": "YAB",
