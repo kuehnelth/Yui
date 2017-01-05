@@ -23,11 +23,11 @@ class Hook:
         self.event = []  # list of events to call this hook for
         self.threaded = False  # whether or not the hook should be called in a separate thread
 
-    # unpack kwargs, match their keys to the hook's normal args' names
-    # and pass them accordingly
-    # args not in the hook's signature are ignored, and args that are in the
-    # signature, but not in kwargs, are passed as None
     def __call__(self, **kwargs):
+        """unpack kwargs, match their keys to the hook's normal args' names
+        and pass them accordingly
+        args not in the hook's signature are ignored, and args that are in the
+        signature, but not in kwargs, are passed as None"""
         argNames = inspect.getargspec(self.func).args  # list of argument names
         args = []  # argument list to pass
         for name in argNames:
@@ -71,17 +71,17 @@ class Yui(IRCClient):
     # decorators for hooks in plugins
     ################################################################################
 
-    # return a hook by function
-    # or create a new one and return that
     def get_hook(self, func):
+        """Return a Hook by its associated callable, or a new Hook,
+        if no matching one exists"""
         if func in self.hooks:
             return self.hooks[func]
         h = Hook(func)
         self.hooks[func] = h
         return h
 
-    # decorator for simple commands
     def command(self, *names):
+        """Register the decorated callable as a command"""
         def command_dec(f):
             h = self.get_hook(f)
             h.plugin = self.loadingPlugin
@@ -90,8 +90,9 @@ class Yui(IRCClient):
 
         return command_dec
 
-    # decorator for matching regex against messages
     def regex(self, *reg):
+        """Register the decorated callable as a command triggered
+        by any string matching a regex"""
         def regex_dec(f):
             h = self.get_hook(f)
             h.plugin = self.loadingPlugin
@@ -102,8 +103,9 @@ class Yui(IRCClient):
 
         return regex_dec
 
-    # decorator for setting needed permissions on a command
     def perm(self, *perm):
+        """Set the needed permission to use the hook associated with
+        the decorated callable"""
         def perm_dec(f):
             h = self.get_hook(f)
             h.plugin = self.loadingPlugin
@@ -112,8 +114,8 @@ class Yui(IRCClient):
 
         return perm_dec
 
-    # decorator for other events
     def event(self, *ev):
+        """Register the decorated callable to any irc- or bot-internal event"""
         def event_dec(f):
             h = self.get_hook(f)
             h.plugin = self.loadingPlugin
@@ -123,6 +125,8 @@ class Yui(IRCClient):
         return event_dec
 
     def threaded(self, f):
+        """Set the Hook associated with the decorated callable to
+        be executed in a separate thread"""
         h = self.get_hook(f)
         h.threaded = True
         return f
@@ -131,12 +135,13 @@ class Yui(IRCClient):
     # irc functions
     ################################################################################
 
-    # send a message to a channel/user
     def send_msg(self, channel, msg):
+        """Send a PRIVMSG to a user or channel"""
         self.send_privmsg(channel, msg)
         self.fire_event('msgSend', channel=channel, msg=msg)
 
     def get_nick(self):
+        """Return the bot's current nickname"""
         return self.nick
 
     ################################################################################
@@ -144,6 +149,7 @@ class Yui(IRCClient):
     ################################################################################
 
     def fire_event(self, eventName, **kwargs):
+        """Run Hooks registered to an event"""
         try:
             for f, h in self.hooks.items():
                 if eventName in h.event:
@@ -152,17 +158,17 @@ class Yui(IRCClient):
             if eventName != 'log':
                 self.log('error', 'Exception occurred processing event "%s": %s' % (eventName, repr(ex)))
 
-    # check if a user has a certain permission
     def check_perm(self, user, perm):
+        """Return True if the user has the specified permission"""
         if perm not in self.config:
             return False
         if user not in self.config[perm]:
             return False
         return True
 
-    # check if a user has any of the given permissions
-    # returns false for an empty list
     def check_perm_any(self, user, perm):
+        """Return True if the user has any of the given permissions.
+        Return False for an empty list"""
         if not perm:
             return True
         for p in perm:
@@ -170,12 +176,13 @@ class Yui(IRCClient):
                 return True
         return False
 
-    # prints to stdout and fires the 'log' event
     def log(self, level, msg):
+        """Print to stdout and fire the 'log' event"""
         print('[%s] %s' % (level, msg))
         self.fire_event('log', level=level, msg=msg)
 
     def load_config(self):
+        """(Re-)load the config JSON"""
         try:
             with open(self.configPath) as f:
                 self.config = json.load(f, object_pairs_hook=OrderedDict)
@@ -185,6 +192,7 @@ class Yui(IRCClient):
         return True
 
     def save_config(self):
+        """Save the config to disk"""
         self.log('info', 'Saving config')
         try:
             with open(self.configPath, 'w') as f:
@@ -195,11 +203,8 @@ class Yui(IRCClient):
             return False
         return True
 
-    # loads a given .py file as a plugin
-    # calls its init() function, if it has one
-    # if a path to a directory is given, it tries to load a .py file in that,
-    # if it has the same name as the dir
     def load_plugin(self, name):
+        """Load a plugin by its name."""
         try:
             name = os.path.basename(name)
             filepath = os.path.join(self.config['pluginDir'], name)
@@ -217,7 +222,6 @@ class Yui(IRCClient):
             self.unload_plugin(name)
 
             # set the currently loading plugin name
-            # TODO
             self.loadingPlugin = name
 
             plugin = imp.load_source(name, filepath)
@@ -230,6 +234,7 @@ class Yui(IRCClient):
         return True
 
     def unload_plugin(self, name):
+        """Unload a plugin by its name"""
         toDel = [f for f, h in self.hooks.items() if h.plugin == name]
         if len(toDel) < 1:
             return False
@@ -237,19 +242,19 @@ class Yui(IRCClient):
             del self.hooks[d]
         return True
 
-    # load all plugins specified in the pluginAutoLoad config
     def autoload_plugins(self):
+        """Load all plugins specified in the pluginAutoLoad config"""
         for p in self.config['pluginAutoLoad']:
             if not self.load_plugin(p):
                 return False
         return True
 
     def get_all_hooks(self):
-        """return a list containing all registered hooks"""
+        """Return a list containing all registered hooks"""
         return self.hooks.values()
 
     def hook_by_cmd(self, cmd):
-        """return a hook by registered command"""
+        """Return a hook by registered command"""
         for f, h in self.hooks.items():
             if cmd in h.cmd:
                 return h
@@ -259,7 +264,6 @@ class Yui(IRCClient):
     # IRCClient callbacks
     ################################################################################
 
-    # combines on_privmsg and on_pubmsg
     # TODO: threading
     def on_privmsg(self, nick, target, msg):
         # fire generic event
@@ -300,7 +304,6 @@ class Yui(IRCClient):
 
 
 def main():
-    # ugly commandline parsing
     import sys
     conf = "config.json"
     if len(sys.argv) > 1:
