@@ -76,9 +76,9 @@ def tick():
         return
     row = rows[0]
     if len(row[3]) < 1:
-        yui.send_msg(row[2], '%s, you told me to remind you of something. [%s]' % (row[1], row[4]))
+        yui.send_msg(row[2], 'Reminder for %s [%s]' % (row[1], row[4]))
     else:
-        yui.send_msg(row[2], '%s, you told me to remind you of: %s [%s]' % (row[1], row[3], row[4]))
+        yui.send_msg(row[2], 'Reminder for %s: %s [%s]' % (row[1], row[3], row[4]))
 
     cursor = yui.db.execute("""\
         DELETE FROM remind WHERE id = ?""", (row[0],))
