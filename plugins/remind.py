@@ -1,7 +1,6 @@
 import re
-import dateutil.parser
-import datetime
 
+import dateutil.parser
 
 yui.db.execute("""\
 CREATE TABLE IF NOT EXISTS remind(
@@ -23,6 +22,7 @@ yui.db.commit()
 
 REGEX_TIME = re.compile(r'^(?:(?P<days>\d+)[dD])?(?:(?P<hours>\d+)[hH])?(?:(?P<minutes>\d+)[mM])?$')
 
+
 def time_to_minutes(time):
     match = REGEX_TIME.match(time)
     if not match:
@@ -38,7 +38,7 @@ def time_to_minutes(time):
 
 @yui.command('remind', 'rem')
 def remind(user, channel, argv, msg):
-    """Remind yourself of something. Usage: tell <+minutes> [message]"""
+    """Remind yourself of something. Usage: remind <time> [message]"""
     if len(argv) < 2:
         return
 
