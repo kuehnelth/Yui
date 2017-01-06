@@ -127,6 +127,11 @@ class IRCClient(object):
         self.on_error(args[0])
         self.disconnect()
 
+    def cmd_JOIN(self, prefix, args):
+        nick = self.nick_from_prefix(prefix)
+        channel = args[0]
+        self.on_join(nick, channel)
+
     # ErrNickNameInUse
     def cmd_433(self, prefix, args):
         self.nick = args[1] + '_'
@@ -141,6 +146,9 @@ class IRCClient(object):
         self.on_serverready()
 
     def on_nick(self, old, new):
+        pass
+
+    def on_join(self, nick, channel):
         pass
 
     def on_part(self, nick, channel):
@@ -163,6 +171,10 @@ class IRCClient(object):
         pass
 
     def on_error(self, error):
+        pass
+
+    def on_tick(self):
+        """Called once roughly every second"""
         pass
 
     # try to connect to a server
@@ -209,11 +221,17 @@ class IRCClient(object):
             # main recv loop
             recv = ''
             last_time = time.time()  # timestamp for detecting timeouts
+            last_tick = time.time()
             sent_ping = False
             while not self.quitting:
                 try:
                     now = time.time()
                     diff = now - last_time
+
+                    #call on_tick every second
+                    if now - last_tick > 1.0:
+                        self.on_tick()
+                        last_tick = time.time()
 
                     # send a ping at half the timeout
                     if diff > self.timeout/2.0 and not sent_ping:

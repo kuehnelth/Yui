@@ -55,6 +55,8 @@ class Yui(IRCClient):
         if not self.autoload_plugins():
             quit()
 
+        self.server_ready = False
+
         # init SingleServerIRCBot
         IRCClient.__init__(self,
                            server=self.config['server'],
@@ -290,6 +292,9 @@ class Yui(IRCClient):
                     if ret:
                         self.send_msg(target, ret)
 
+    def on_join(self, nick, channel):
+        self.fire_event('join', user=nick, channel=channel)
+
     def on_log(self, error):
         self.log('error', error)
 
@@ -301,7 +306,11 @@ class Yui(IRCClient):
     def on_serverready(self):
         self.log('info', 'connected!')
         self.fire_event('connect')
+        self.server_ready = True
 
+    def on_tick(self):
+        if self.server_ready:
+            self.fire_event('tick')
 
 def main():
     import sys
