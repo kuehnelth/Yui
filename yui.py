@@ -8,6 +8,7 @@ import json  # reading/writing config
 import os
 import re
 import sqlite3
+import threading
 from collections import OrderedDict  # for more consistent settings saving
 
 from ircclient import IRCClient
@@ -266,12 +267,26 @@ class Yui(IRCClient):
     # IRCClient callbacks
     ################################################################################
 
-    # TODO: threading
     def on_privmsg(self, nick, target, msg):
+        if target == self.get_nick():  # if we're in query
+            target = nick  # send stuff back to the person
+
         # fire generic event
         self.fire_event('msgRecv', user=nick,
                         msg=msg,
                         channel=target)
+
+        def call_hook(hook, target, **kwargs):
+            """Call a hook either directly or in a thread"""
+            def thread(hook, target, **kwargs):
+                ret = hook(**kwargs)
+                if ret:
+                    self.send_msg(target, ret)
+            if hook.threaded:
+                t = threading.Thread(target=thread, args=(hook, target), kwargs=kwargs)
+                t.start()
+            else:
+                thread(hook,target,**kwargs)
 
         hooks = self.hooks.copy()
         # parse command
@@ -280,17 +295,13 @@ class Yui(IRCClient):
             # look for a hook registered to this command
             for f, h in hooks.items():
                 if argv[0] in h.cmd and self.check_perm_any(nick, h.perm):
-                    ret = h(user=nick, channel=target, msg=msg, argv=argv)
-                    if ret:
-                        self.send_msg(target, ret)
+                    call_hook(h, target, user=nick, channel=target, msg=msg, argv=argv)
         # match regex
         for f, h in hooks.items():
             for reg in h.regex:
                 match = reg.match(msg)
                 if match:
-                    ret = h(user=nick, channel=target, msg=msg, groups=match.groupdict())
-                    if ret:
-                        self.send_msg(target, ret)
+                    call_hook(h, target, user=nick, channel=target, msg=msg, groups=match.groupdict())
 
     def on_join(self, nick, channel):
         self.fire_event('join', user=nick, channel=channel)
