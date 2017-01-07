@@ -1,7 +1,5 @@
 import wikipedia
 
-MAX_LEN = 350
-
 
 @yui.threaded
 @yui.command('wiki', 'wk', 'w')
@@ -23,6 +21,4 @@ def wiki(argv):
         summary = wikipedia.summary(article)
     except Exception as ex:
         return "Couldn't find an article for '%s'" % article
-    if len(summary) > MAX_LEN:
-        summary = summary[:MAX_LEN-3] + '...'
     return summary

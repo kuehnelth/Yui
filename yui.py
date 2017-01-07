@@ -140,7 +140,7 @@ class Yui(IRCClient):
 
     def send_msg(self, channel, msg):
         """Send a PRIVMSG to a user or channel"""
-        self.send_privmsg(channel, msg)
+        self.send_privmsg(channel, self.trim_to_max_len(msg, '...'))
         self.fire_event('msgSend', channel=channel, msg=msg)
 
     def get_nick(self):

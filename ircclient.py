@@ -30,17 +30,21 @@ class IRCClient(object):
         self.realname = realname
         self.timeout = timeout
 
-    # send a raw line to the server
+        self.max_msg_len = 400
+
+        self.bad_chars_regex = re.compile(r'[\r\n]+')
+
     def send_raw(self, msg):
+        """Send a raw line to the server"""
         try:
             # strip newlines
             bad_chars = '\r\n'
             # TODO: compile regex
-            stripped = re.sub('[' + bad_chars + ']+', '', msg)
+            stripped = self.bad_chars_regex.sub(' ',msg)
 
             # clamp length
-            if len(stripped) > 400:
-                stripped = stripped[:400]
+            if len(stripped) > self.max_msg_len:
+                stripped = stripped[:self.max_msg_len]
 
             stripped += '\r\n'
             utf8 = stripped.encode(self.encoding)
@@ -55,6 +59,19 @@ class IRCClient(object):
             self.on_log('Exception while sending data: %s' % repr(ex))
             self.disconnect()
         return True
+
+    # TODO: this seems a bit inefficient
+    def trim_to_max_len(self, string, trail = ''):
+        """Trim a string to the max. message (byte) length, replace
+        last few characters with a given trail (e.g. '...')"""
+        enc_str = string.encode(self.encoding)
+        if len(enc_str) < self.max_msg_len:
+            return string
+        enc_trail = trail.encode(self.encoding)
+        enc_str = enc_str[:self.max_msg_len-len(enc_trail)]
+        dec = enc_str.decode(self.encoding, 'ignore')
+        dec += trail
+        return dec
 
     def send_privmsg(self, channel, msg):
         """Send a message to a channel/user"""
