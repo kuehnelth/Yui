@@ -19,7 +19,7 @@ def alias(argv):
         return
     hook = yui.hook_by_cmd(argv[1])
     if hook:
-        return 'Aliases for %s: %s' % (hook, ', '.join(hook.cmd))
+        return 'Aliases for %s: %s' % (argv[1], ', '.join(hook.cmd))
 
 
 @yui.command('commands','cmds')
