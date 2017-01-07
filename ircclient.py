@@ -56,33 +56,35 @@ class IRCClient(object):
             self.disconnect()
         return True
 
-    # send a message to a channel/user
     def send_privmsg(self, channel, msg):
+        """Send a message to a channel/user"""
         if not channel or not msg:
             return
         self.send_raw('PRIVMSG %s :%s' % (channel, msg))
 
-    # set the nick
     def set_nick(self, nick):
+        """Set the bot's nick"""
         self.send_raw('NICK %s' % nick)
 
-    # join a channel
+    def set_mode(self, nick, mode):
+        self.send_raw('MODE %s %s' % (nick, mode))
+
     def join(self, channel):
+        """Join a channel"""
         self.send_raw('JOIN %s' % channel)
 
-    # leave a channel
     def part(self, channel):
+        """Leave a channel"""
         self.send_raw('PART %s' % channel)
 
-    # quit from the server
-    # also ends the main loop gracefully
     def quit(self, reason):
+        """Quit from the server and end the main loop gracefully"""
         self.send_raw('QUIT :%s' % reason)
         self.quitting = True
 
-    # parse a message received from the server and split it into manageable parts
-    # *inspired by* twisted's irc implementation
     def parse_server_cmd(self, cmd):
+        """Parse a message received from the server and split it into manageable parts.
+        *inspired by* twisted's irc implementation"""
         prefix = ''
         trailing = []
         if not cmd:
@@ -102,13 +104,14 @@ class IRCClient(object):
             self.on_log('Received invalid message from server: %s' % cmd)
             return None, None, None
 
-    # handle a received command (that has been parsed by parseServerCmd())
     def handle_server_cmd(self, prefix, cmd, args):
+        """Handle a received command (that has been parsed by parseServerCmd())"""
         handler = getattr(self, 'cmd_%s' % cmd, None)
         if handler:
             handler(prefix, args)
 
     def nick_from_prefix(self, prefix):
+        """Extract the nick from a prefix"""
         return prefix.split('!')[0]
 
     def cmd_NICK(self, prefix, args):
@@ -177,9 +180,8 @@ class IRCClient(object):
         """Called once roughly every second"""
         pass
 
-    # try to connect to a server
-    # TODO: handle failed self.send_raw calls somehow?
     def connect(self):
+        """Try to connect to the server"""
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
         # enable ssl
@@ -202,8 +204,8 @@ class IRCClient(object):
         self.on_connect()
         return True
 
-    # close the socket
     def disconnect(self):
+        """Disconnect from the server, but don't quit the main loop."""
         if self.socket:
             self.socket.shutdown(socket.SHUT_RDWR)
             self.socket.close()
@@ -211,8 +213,8 @@ class IRCClient(object):
             return True
         return False
 
-    # main loop
     def run(self):
+        """Main loop"""
         while not self.quitting:
             # try connecting indefinitely
             while not self.connect():

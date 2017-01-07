@@ -34,3 +34,13 @@ def quit(argv):
 def nick(argv):
     if len(argv) > 1:
         yui.set_nick(argv[1])
+
+@yui.command('mode')
+@yui.perm('admin','moderator')
+def mode(argv):
+    if len(argv) < 2:
+        return
+    if len(argv) < 3:
+        yui.set_mode(yui.get_nick(), argv[1])
+    else:
+        yui.set_mode(argv[1], argv[2])

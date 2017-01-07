@@ -28,5 +28,6 @@
     ],
     "channels": [
         "#installgentoo"
-    ]
+    ],
+    "userModes": "+B"
 }
