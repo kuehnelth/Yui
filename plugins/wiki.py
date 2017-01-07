@@ -2,6 +2,7 @@ import wikipedia
 
 MAX_LEN = 350
 
+
 @yui.command('wiki', 'wk', 'w')
 def wiki(argv):
     """Prints summary of Wikipedia atricles. Usage: wiki [-lang] <article>"""
@@ -9,7 +10,7 @@ def wiki(argv):
     if len(argv) < 2:
         return
 
-    # check if a language is given
+    # check if a language was given
     argv = argv[1:]
     if len(argv) > 1 and argv[0].startswith('-'):
         lang = argv[0][1:]
@@ -18,9 +19,9 @@ def wiki(argv):
     article = ' '.join(argv)
     try:
         wikipedia.set_lang(lang)
-        sum = wikipedia.summary(article)
+        summary = wikipedia.summary(article)
     except Exception as ex:
         return "Couldn't find an article for '%s'" % article
-    if len(sum) > MAX_LEN:
-        sum = sum[:MAX_LEN-3] + '...'
-    return sum
+    if len(summary) > MAX_LEN:
+        summary = summary[:MAX_LEN-3] + '...'
+    return summary
