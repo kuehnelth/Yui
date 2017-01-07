@@ -3,6 +3,7 @@ import wikipedia
 MAX_LEN = 350
 
 
+@yui.threaded
 @yui.command('wiki', 'wk', 'w')
 def wiki(argv):
     """Prints summary of Wikipedia atricles. Usage: wiki [-lang] <article>"""
