@@ -291,11 +291,12 @@ class Yui(IRCClient):
         hooks = self.hooks.copy()
         # parse command
         if msg.startswith(tuple(self.config['commandPrefixes'])):
-            argv = list(csv.reader([msg[1:]], delimiter=' ', quotechar='"', skipinitialspace=True))[0]
-            # look for a hook registered to this command
-            for f, h in hooks.items():
-                if argv[0] in h.cmd and self.check_perm_any(nick, h.perm):
-                    call_hook(h, target, user=nick, channel=target, msg=msg, argv=argv)
+            if len(msg) > 1:
+                argv = list(csv.reader([msg[1:]], delimiter=' ', quotechar='"', skipinitialspace=True))[0]
+                # look for a hook registered to this command
+                for f, h in hooks.items():
+                    if argv[0] in h.cmd and self.check_perm_any(nick, h.perm):
+                        call_hook(h, target, user=nick, channel=target, msg=msg, argv=argv)
         # match regex
         for f, h in hooks.items():
             for reg in h.regex:
