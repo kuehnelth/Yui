@@ -29,5 +29,6 @@
     "channels": [
         "#installgentoo"
     ],
-    "userModes": "+B"
+    "userModes": "+B",
+    "markovLogFile": "mark.txt"
 }
