@@ -4,8 +4,8 @@ import os
 
 # takes irc logs (as ZNC writes them, and in utf-8) and generates
 # markov models for each nick in them
-# put your concatenated logs in one file besides this plugin,
-# with the same name, but the extension .txt (i.e. in plugins/mark.txt)
+# put your concatenated logs in one file and set the markovLogFile
+# variable in the config json
 
 # for concatenations you can do something like
 #   find ~/.znc -iname "*#*.log" -exec cat {} \; > mark.txt
@@ -18,8 +18,8 @@ def prepare():
     msg_regex = re.compile(r'^\[..:..:..\] <(.*?)> (.*)$')
 
     text = ''
-    dict_file_name = os.path.splitext(os.path.realpath(__file__))[0] + '.txt'
     try:
+        dict_file_name = yui.config['markovLogFile']
         with open(dict_file_name, errors='replace') as f:
             text = f.read()
     except Exception as ex:
