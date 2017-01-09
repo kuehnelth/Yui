@@ -61,6 +61,7 @@ def generate_sentence(nick):
 @yui.threaded
 @yui.command('markov','mark')
 def markov(argv, user):
+    """Generate a random sentence for a given nick. Usage: markov [nick]"""
     name = user
     if len(argv) > 1:
         name = argv[1]
