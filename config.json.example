@@ -1,4 +1,5 @@
 {
+
     "server": {
         "host": "irc.euirc.org",
         "port": 6697,
@@ -30,7 +31,7 @@
         "url",
         "wiki"
     ],
-    "channels": [
+    "autojoin": [
         "#numberwang"
     ],
     "userModes": "+B",
