@@ -152,7 +152,7 @@ class IRCClient(object):
     def cmd_PRIVMSG(self, prefix, args):
         self.on_privmsg(prefix, args[0], args[1])
 
-    def cmd_QUIT(self, prefix):
+    def cmd_QUIT(self, prefix, args):
         self.on_quit(prefix)
 
     def cmd_ERROR(self, prefix, args):
