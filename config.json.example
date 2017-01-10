@@ -1,34 +1,43 @@
 {
-    "server": "irc.example.com",
-    "port": 6697,
-    "ssl": true,
-    "encoding": "utf-8",
-    "sqlitePath": "yui.db",
-    "user": "yetanotherbot",
-    "password": "",
-    "nick": "YAB",
-    "realname": "abbot",
-    "timeout": 300,
-    "admin": [
-        "yournickgoeshere"
-    ],
-    "moderator": [],
-    "commandPrefixes": ["!"],
+    "server": {
+        "host": "irc.euirc.org",
+        "port": 6697,
+        "ssl": true,
+        "encoding": "utf-8",
+        "sqlitePath": "yui.db",
+        "user": "yuibot",
+        "password": "hurr",
+        "nick": "yuibot",
+        "realname": "abbot",
+        "timeout": 300
+    },
+    "admins": {
+        "yourNickHere": "andYourPassword"
+    },
     "pluginDir": "plugins",
+    "commandPrefixes": ["!", "."],
     "pluginAutoLoad": [
-        "urbandict",
-        "acr",
-        "url",
+        "autojoin",
         "admin",
-        "greetings",
-        "log",
-        "plugs",
+        "help",
+        "eliza",
+        "mark",
         "quotes",
-        "autojoin"
+        "ratelimit",
+        "remind",
+        "slogan",
+        "urbandict",
+        "url",
+        "wiki"
     ],
     "channels": [
-        "#installgentoo"
+        "#numberwang"
     ],
     "userModes": "+B",
+    "ratelimit": {
+        "timeframe": 60,
+        "messages": 5,
+        "ignoreMinutes": 5
+    },
     "markovLogFile": "mark.txt"
 }
