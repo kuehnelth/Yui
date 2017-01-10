@@ -241,10 +241,13 @@ class IRCClient(object):
     def disconnect(self):
         """Disconnect from the server, but don't quit the main loop."""
         if self.socket:
-            self.socket.shutdown(socket.SHUT_RDWR)
-            self.socket.close()
-            self.on_disconnect()
-            return True
+            try:
+                self.socket.shutdown(socket.SHUT_RDWR)
+                self.socket.close()
+                self.on_disconnect()
+                return True
+            except:
+                pass
         return False
 
     def run(self):
