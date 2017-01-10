@@ -196,8 +196,8 @@ class Yui(IRCClient):
     def auth_user(self, user, pw):
         if user in self.authed_users:
             return True
-        if user.nick in self.config_val('admin', default={}).keys():
-            if pw and pw == self.config_val('admin', user.nick, default=None):
+        if user.nick in self.config_val('admins', default={}).keys():
+            if pw and pw == self.config_val('admins', user.nick, default=None):
                 self.authed_users.append(user)
                 return True
         return False
