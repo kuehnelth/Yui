@@ -1,5 +1,5 @@
-import re
 import random
+import re
 
 reflections = {
     "am": "are",
@@ -240,10 +240,11 @@ def analyze(statement):
             response = random.choice(responses)
             return response.format(*[reflect(g) for g in match.groups()])
 
+
 @yui.command('eliza', 'el')
-def eliza(user,argv):
+def eliza(user, argv):
     """The classic eliza. Usage: eliza <message>"""
     if len(argv) < 2:
-        return 'Hello, %s. How are you feeling today?' % user
+        return 'Hello, %s. How are you feeling today?' % user.nick
     else:
-        return '%s: %s' % (user, analyze(' '.join(argv[1:])))
+        return '%s: %s' % (user.nick, analyze(' '.join(argv[1:])))

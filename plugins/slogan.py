@@ -1,4 +1,3 @@
-import re
 import random
 
 slogans = [
@@ -46,11 +45,12 @@ slogans = [
     "Get N or get {0}."
 ]
 
-@yui.command('slogan','slg')
+
+@yui.command('slogan', 'slg')
 def slogan(argv, user):
     """Spits out a slogan for a person or thing of your choosing. Usage: slogan [thing]"""
     if len(argv) > 1:
         user = ' '.join(argv[1:])
     response = random.choice(slogans)
-    formatted = response.format(user)
+    formatted = response.format(user.nick)
     return '"%s"' % formatted

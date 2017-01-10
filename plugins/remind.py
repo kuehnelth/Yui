@@ -37,7 +37,7 @@ def time_to_minutes(time):
 
 
 @yui.command('remind', 'rem')
-def remind(user, channel, argv, msg):
+def remind(user, channel, argv):
     """Remind yourself of something. Usage: remind <time> [message]"""
     if len(argv) < 2:
         return
@@ -51,14 +51,14 @@ def remind(user, channel, argv, msg):
         if min:
             yui.db.execute("""\
                 INSERT INTO remind(nick, channel, msg, date_remind)
-                VALUES(?,?,?,DATETIME(current_timestamp, ?))""", (user, channel, msg, '+%s minutes' % min))
+                VALUES(?,?,?,DATETIME(current_timestamp, ?))""", (user.nick, channel, msg, '+%s minutes' % min))
         else:
             datetime = dateutil.parser.parse(argv[1])
             if datetime < datetime.now():
                 return "That time's already passed"
             yui.db.execute("""\
                 INSERT INTO remind(nick, channel, msg, date_remind)
-                VALUES(?,?,?,DATETIME(?))""", (user, channel, msg, datetime.strftime('%Y-%m-%d %H:%M')))
+                VALUES(?,?,?,DATETIME(?))""", (user.nick, channel, msg, datetime.strftime('%Y-%m-%d %H:%M')))
         yui.db.commit()
     except Exception as ex:
         return
@@ -93,7 +93,7 @@ def tell(user, channel, argv, msg):
     msg = msg.split(' ', 2)[2]
     yui.db.execute("""\
         INSERT INTO tell(nick, channel, msg, added_by)
-        VALUES(?,?,?,?)""", (argv[1], channel, msg, user))
+        VALUES(?,?,?,?)""", (argv[1], channel, msg, user.nick))
     yui.db.commit()
     return "I'll tell them"
 
@@ -102,12 +102,12 @@ def tell(user, channel, argv, msg):
 def join(user, channel):
     cursor = yui.db.execute("""\
         SELECT nick,channel,msg,added_by FROM tell
-        WHERE nick=? AND channel=?""", (user, channel))
+        WHERE nick=? AND channel=?""", (user.nick, channel))
     rows = cursor.fetchall()
     if len(rows) < 1:
         return
     cursor = yui.db.execute("""\
-        DELETE FROM tell WHERE nick=? AND channel=?""", (user, channel))
+        DELETE FROM tell WHERE nick=? AND channel=?""", (user.nick, channel))
     yui.db.commit()
     tells = ['<%s> %s' % (r[3], r[2]) for r in rows]
-    yui.send_msg(channel, 'Hi %s, I was told to tell you: %s' % (user, ' | '.join(tells)))
+    yui.send_msg(channel, 'Hi %s, I was told to tell you: %s' % (user.nick, ' | '.join(tells)))

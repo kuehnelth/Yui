@@ -1,7 +1,8 @@
-import urllib.request
 import json
+import urllib.request
 
 
+@yui.threaded
 @yui.command('ud', 'urban', 'urbandict')
 def ud(argv):
     """Urban Dictionary search. Usage: ud <term> [result nr.]"""

@@ -1,6 +1,6 @@
-import markovify
 import re
-import os
+
+import markovify
 
 # takes irc logs (as ZNC writes them, and in utf-8) and generates
 # markov models for each nick in them
@@ -19,7 +19,7 @@ def prepare():
 
     text = ''
     try:
-        dict_file_name = yui.config['markovLogFile']
+        dict_file_name = yui.config_val('markovLogFile')
         with open(dict_file_name, errors='replace') as f:
             text = f.read()
     except Exception as ex:
@@ -59,17 +59,18 @@ def generate_sentence(nick):
 
 
 @yui.threaded
-@yui.command('markov','mark')
+@yui.command('markov', 'mark')
 def markov(argv, user):
     """Generate a random sentence for a given nick. Usage: markov [nick]"""
-    name = user
+    name = user.nick
     if len(argv) > 1:
         name = argv[1]
     if name not in nick_models.keys():
-        return 'Who?'
+        return "I don't have enough data for %s" % name
     sent = generate_sentence(name)
     if not sent:
         return 'Nope'
     return '<%s> %s' % (name, sent)
+
 
 prepare()

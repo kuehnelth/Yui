@@ -1,21 +1,22 @@
-import sqlite3
-import os
 import _thread
-import time
+import os
+import sqlite3
 
 rules = {
-        "n":"AND wordtype LIKE '%n.%'",
-        "v":"AND wordtype LIKE '%v.%'",
-        "adv":"AND wordtype LIKE '%adv.%'",
-        "adj":"AND wordtype LIKE '%a.%'",
-        "ing":"AND wordtype LIKE '%a.%' AND word LIKE '%ing'",
-        "prep":"AND wordtype LIKE '%prep.%'",
-        "pron":"AND wordtype LIKE '%pron.%'",
+    "n": "AND wordtype LIKE '%n.%'",
+    "v": "AND wordtype LIKE '%v.%'",
+    "adv": "AND wordtype LIKE '%adv.%'",
+    "adj": "AND wordtype LIKE '%a.%'",
+    "ing": "AND wordtype LIKE '%a.%' AND word LIKE '%ing'",
+    "prep": "AND wordtype LIKE '%prep.%'",
+    "pron": "AND wordtype LIKE '%pron.%'",
 }
+
 
 @yui.command('acr')
 def acr(channel, argv):
     _thread.start_new_thread(acr_thread, (channel, argv))
+
 
 def acr_thread(channel, argv):
     if len(argv) < 2 or len(argv) > 10:
@@ -23,7 +24,7 @@ def acr_thread(channel, argv):
 
     arg = 1
     words = ''
-    path = os.path.join(os.path.dirname(__file__),'dict.sqlite')
+    path = os.path.join(os.path.dirname(__file__), 'dict.sqlite')
     con = sqlite3.connect(path)
     with con:
         for c in argv[1]:
@@ -36,7 +37,8 @@ def acr_thread(channel, argv):
                     words += argv[arg] + ' '
                     continue;
             cur = con.cursor()
-            cur.execute("SELECT LOWER(word) FROM entries WHERE LOWER(word) LIKE '"+c+"%' "+rule+" ORDER BY RANDOM() LIMIT 1;")
+            cur.execute(
+                "SELECT LOWER(word) FROM entries WHERE LOWER(word) LIKE '" + c + "%' " + rule + " ORDER BY RANDOM() LIMIT 1;")
             row = cur.fetchone()
             if row != None:
                 words += (row[0] + ' ')

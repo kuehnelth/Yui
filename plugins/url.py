@@ -1,6 +1,6 @@
+import html.parser
 import re
 import urllib.request
-import html.parser
 
 
 class TitleParser(html.parser.HTMLParser):

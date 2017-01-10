@@ -23,7 +23,7 @@ def quoteAdd(user, channel, argv, msg):
     if len(argv) > 1:
         yui.db.execute("""\
         INSERT INTO quotes (tag, quote, added_by)
-        VALUES (?, ?, ?)""", (tag, msg.split(' ', 1)[1], user))
+        VALUES (?, ?, ?)""", (tag, msg.split(' ', 1)[1], user.nick))
         yui.db.commit()
         return 'Added quote to [%s]!' % tag
 

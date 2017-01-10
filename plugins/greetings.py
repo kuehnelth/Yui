@@ -1,5 +1,5 @@
-import re
 import random
+import re
 
 phrases = [
     ['hi', 'hello'],
@@ -9,6 +9,7 @@ phrases = [
     ['よ', 'やぁ', 'おっす']
 ]
 
+
 def getRandomExcept(arr, ex):
     if not ex in arr:
         return random.choice(arr)
@@ -16,8 +17,9 @@ def getRandomExcept(arr, ex):
     arrEx = arr[:idx] + arr[idx + 1:]
     return random.choice(arrEx)
 
+
 @yui.event('msgRecv')
-def greetings(msg, user, channel):
+def greetings(msg, channel):
     global phrases
 
     answer = None

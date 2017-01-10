@@ -2,8 +2,11 @@ import errno
 import re
 import socket
 import ssl
-import threading
 import time
+from collections import namedtuple
+
+Prefix = namedtuple('Prefix', ['nick', 'user', 'host', 'raw'])
+ServerCmd = namedtuple('ServerCmd', ['prefix', 'cmd', 'args'])
 
 
 class IRCClient(object):
@@ -38,9 +41,7 @@ class IRCClient(object):
         """Send a raw line to the server"""
         try:
             # strip newlines
-            bad_chars = '\r\n'
-            # TODO: compile regex
-            stripped = self.bad_chars_regex.sub(' ',msg)
+            stripped = self.bad_chars_regex.sub(' ', msg)
 
             # clamp length
             if len(stripped) > self.max_msg_len:
@@ -61,14 +62,14 @@ class IRCClient(object):
         return True
 
     # TODO: this seems a bit inefficient
-    def trim_to_max_len(self, string, trail = ''):
+    def trim_to_max_len(self, string, trail=''):
         """Trim a string to the max. message (byte) length, replace
         last few characters with a given trail (e.g. '...')"""
         enc_str = string.encode(self.encoding)
         if len(enc_str) < self.max_msg_len:
             return string
         enc_trail = trail.encode(self.encoding)
-        enc_str = enc_str[:self.max_msg_len-len(enc_trail)]
+        enc_str = enc_str[:self.max_msg_len - len(enc_trail)]
         dec = enc_str.decode(self.encoding, 'ignore')
         dec += trail
         return dec
@@ -116,41 +117,51 @@ class IRCClient(object):
             else:
                 args = cmd.split()
             cmd = args.pop(0)
-            return prefix, cmd, args
+            return ServerCmd(prefix, cmd, args)
         except Exception as ex:
             self.on_log('Received invalid message from server: %s' % cmd)
-            return None, None, None
+            return None
 
-    def handle_server_cmd(self, prefix, cmd, args):
+    def handle_server_cmd(self, cmd):
         """Handle a received command (that has been parsed by parseServerCmd())"""
-        handler = getattr(self, 'cmd_%s' % cmd, None)
+        handler = getattr(self, 'cmd_%s' % cmd.cmd, None)
         if handler:
-            handler(prefix, args)
+            handler(self.split_prefix(cmd.prefix), cmd.args)
 
-    def nick_from_prefix(self, prefix):
-        """Extract the nick from a prefix"""
-        return prefix.split('!')[0]
+    def split_prefix(self, prefix):
+        """Extract the nick, user and host from a prefix"""
+        split = prefix.split('!')
+        nick = split[0]
+        user = None
+        host = None
+        if len(split) > 1:
+            split = split[1].split('@')
+            user = split[0]
+            if len(split) > 1:
+                host = split[1]
+        return Prefix(nick, user, host, prefix)
 
     def cmd_NICK(self, prefix, args):
-        nick = self.nick_from_prefix(prefix)
-        if nick == self.nick:
-            self.nick = nick
-        self.on_nick(nick, args[0])
+        if prefix.nick == self.nick:
+            self.nick = args[0]
+        self.on_nick(prefix, args[0])
 
     def cmd_PING(self, prefix, args):
         self.send_raw('PONG :%s' % args[0])
 
     def cmd_PRIVMSG(self, prefix, args):
-        self.on_privmsg(self.nick_from_prefix(prefix), args[0], args[1])
+        self.on_privmsg(prefix, args[0], args[1])
+
+    def cmd_QUIT(self, prefix):
+        self.on_quit(prefix)
 
     def cmd_ERROR(self, prefix, args):
         self.on_error(args[0])
         self.disconnect()
 
     def cmd_JOIN(self, prefix, args):
-        nick = self.nick_from_prefix(prefix)
         channel = args[0]
-        self.on_join(nick, channel)
+        self.on_join(prefix, channel)
 
     # ErrNickNameInUse
     def cmd_433(self, prefix, args):
@@ -165,13 +176,16 @@ class IRCClient(object):
     def cmd_376(self, prefix, args):
         self.on_serverready()
 
-    def on_nick(self, old, new):
+    def on_nick(self, prefix, new):
         pass
 
-    def on_join(self, nick, channel):
+    def on_join(self, prefix, channel):
         pass
 
-    def on_part(self, nick, channel):
+    def on_part(self, prefix, channel):
+        pass
+
+    def on_quit(self, prefix):
         pass
 
     def on_connect(self):
@@ -183,7 +197,7 @@ class IRCClient(object):
     def on_serverready(self):
         pass
 
-    def on_privmsg(self, nick, target, msg):
+    def on_privmsg(self, prefix, target, msg):
         pass
 
     def on_rawmsg(self, msg):
@@ -195,6 +209,9 @@ class IRCClient(object):
 
     def on_tick(self):
         """Called once roughly every second"""
+        pass
+
+    def on_log(self, msg):
         pass
 
     def connect(self):
@@ -247,13 +264,13 @@ class IRCClient(object):
                     now = time.time()
                     diff = now - last_time
 
-                    #call on_tick every second
+                    # call on_tick every second
                     if now - last_tick > 1.0:
                         self.on_tick()
                         last_tick = time.time()
 
                     # send a ping at half the timeout
-                    if diff > self.timeout/2.0 and not sent_ping:
+                    if diff > self.timeout / 2.0 and not sent_ping:
                         self.send_raw('PING :%s' % self.nick)
                         sent_ping = True
 
@@ -279,9 +296,9 @@ class IRCClient(object):
                 while '\r\n' in recv:
                     line, recv = recv.split('\r\n', 1)
                     self.on_rawmsg(line)
-                    prefix, cmd, args = self.parse_server_cmd(line)
+                    cmd = self.parse_server_cmd(line)
                     if cmd:
-                        self.handle_server_cmd(prefix, cmd, args)
+                        self.handle_server_cmd(cmd)
 
             self.disconnect()
 
