@@ -5,13 +5,13 @@
         "port": 6697,
         "ssl": true,
         "encoding": "utf-8",
-        "sqlitePath": "yui.db",
         "user": "yuibot",
         "password": "hurr",
         "nick": "yuibot",
         "realname": "abbot",
         "timeout": 300
     },
+    "sqlitePath": "yui.db",
     "admins": {
         "yourNickHere": "andYourPassword"
     },
