@@ -31,7 +31,7 @@ def prepare():
         match = msg_regex.match(line)
         if not match:
             continue
-        u = match.group(1)
+        u = match.group(1).lower()
         m = match.group(2)
         # omit any sentences shorter than 3 words
         if len(m.split()) < 3:
@@ -52,7 +52,7 @@ def prepare():
 # generate a sentence for a given nick
 def generate_sentence(nick):
     for i in range(1, 100):
-        ret = nick_models[nick].make_sentence()
+        ret = nick_models[nick.lower()].make_sentence()
         if ret:
             return ret
     return None
