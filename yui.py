@@ -156,13 +156,15 @@ class Yui(IRCClient):
 
     def fire_event(self, eventName, **kwargs):
         """Run Hooks registered to an event"""
+        ret = []
         try:
             for f, h in self.hooks.items():
                 if eventName in h.event:
-                    h(**kwargs)
+                    ret.append(h(**kwargs))
         except Exception as ex:
             if eventName != 'log':
                 self.log('error', 'Exception occurred processing event "%s": %s' % (eventName, repr(ex)))
+        return ret
 
     def ignore(self, seconds, nick, user='.*', host='.*'):
         """Ignore messages from a privmsg prefix for a number of seconds"""
@@ -346,25 +348,27 @@ class Yui(IRCClient):
             else:
                 thread(hook, target, **kwargs)
 
-        hooks = self.hooks.copy()
         # parse command
         if msg.startswith(tuple(self.config_val('commandPrefixes', default=['!']))):
             if len(msg) > 1:
                 argv = list(csv.reader([msg[1:]], delimiter=' ', quotechar='"', skipinitialspace=True))[0]
                 # look for a hook registered to this command
-                for f, h in hooks.items():
+                for f, h in self.hooks.items():
                     if h.admin and not self.is_authed(user):
                         continue
                     if argv[0] in h.cmd:
+                        if False in self.fire_event('preCmd', user=user, channel=target, msg=msg):
+                            return
                         call_hook(h, target, user=user, channel=target, msg=msg, argv=argv)
-                        self.fire_event('postCmd', user=user, channel=target, msg=msg)
+                        return
         # match regex
-        for f, h in hooks.items():
+        for f, h in self.hooks.items():
             for reg in h.regex:
                 match = reg.match(msg)
                 if match:
+                    if False in self.fire_event('preCmd', user=user, channel=target, msg=msg):
+                        return
                     call_hook(h, target, user=user, channel=target, msg=msg, groups=match.groupdict())
-                    self.fire_event('postCmd', user=user, channel=target, msg=msg)
 
     def on_join(self, user, channel):
         self.fire_event('join', user=user, channel=channel)
