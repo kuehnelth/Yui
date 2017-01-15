@@ -65,7 +65,7 @@ def markov(argv, user):
     name = user.nick
     if len(argv) > 1:
         name = argv[1]
-    if name not in nick_models.keys():
+    if name.lower() not in nick_models.keys():
         return "I don't have enough data for %s" % name
     sent = generate_sentence(name)
     if not sent:
