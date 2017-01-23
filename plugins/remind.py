@@ -97,9 +97,16 @@ def tell(user, channel, argv, msg):
     yui.db.commit()
     return "I'll tell them"
 
+@yui.command('tellme')
+def tellme(user, channel):
+    """Tells you stuff people told me to tell you."""
+    say_tell(user, channel)
 
 @yui.event('join')
 def join(user, channel):
+    say_tell(user, channel)
+
+def say_tell(user, channel):
     cursor = yui.db.execute("""\
         SELECT nick,channel,msg,added_by FROM tell
         WHERE nick=? AND channel=?""", (user.nick, channel))
