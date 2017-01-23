@@ -25,7 +25,7 @@ def admin():
 @yui.command('source', 'src')
 def source():
     """Link to source code"""
-    return 'https://github.com/Rj48/Yui'
+    return 'https://github.com/Rouji/Yui'
 
 
 @yui.command('auth')
