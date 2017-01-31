@@ -281,7 +281,7 @@ class IRCClient(object):
                     if diff > self.timeout:
                         break
 
-                    recv += self.socket.recv(4098).decode(self.encoding)
+                    recv += self.socket.recv(4098).decode(self.encoding, 'ignore')
 
                     last_time = now
                     sent_ping = False
