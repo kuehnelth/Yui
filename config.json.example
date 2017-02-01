@@ -39,6 +39,5 @@
         "timeframe": 60,
         "messages": 5,
         "ignoreMinutes": 5
-    },
-    "markovLogFile": "mark.txt"
+    }
 }
