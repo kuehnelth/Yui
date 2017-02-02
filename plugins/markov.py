@@ -1,18 +1,21 @@
 import re
+import threading
 
 import markovify
 
 yui.db.execute("""\
 CREATE TABLE IF NOT EXISTS markov(
-    nick TEXT PRIMARY KEY,
-    model TEXT);""")
+    nick TEXT,
+    sentence TEXT);""")
 yui.db.commit()
 
 BUFFER_SIZE = 100  # messages to buffer before merging them into the models
+STATE_SIZE = 3
 
 nick_models = {}  # mapping nick -> markov model
 msg_buffer = {}  # buffer for messages before they get merged
 msg_count = 0
+lock = threading.Lock()
 
 
 @yui.admin
@@ -45,7 +48,6 @@ def load_file(argv):
         num_lines += 1
 
     merge_buffers()
-    save_models()
     return 'Loaded %d lines' % num_lines
 
 
@@ -60,32 +62,40 @@ def buffer_msg(nick, msg):
 # merge buffered messages into the existing models
 def merge_buffers():
     global msg_buffer
+
+    def merge_thread(buffer):
+        global msg_buffer
+        for n, msgs in buffer.items():
+            n = n.lower()
+            try:
+                model = markovify.NewlineText('\n'.join(msgs), state_size=STATE_SIZE)
+            except:
+                continue
+            with lock:
+                if n not in nick_models:
+                    nick_models[n] = model
+                else:
+                    nick_models[n] = markovify.combine([nick_models[n], model])
+    threading.Thread(target=merge_thread, args=(dict(msg_buffer),)).start()
+
+    # save sentences to db
     for n, msgs in msg_buffer.items():
-        n = n.lower()
-        try:
-            model = markovify.NewlineText('\n'.join(msgs), state_size=3)
-        except:
-            continue
-        if n not in nick_models:
-            nick_models[n] = model
-        else:
-            nick_models[n] = markovify.combine([nick_models[n], model])
+        yui.db.executemany('INSERT INTO markov(nick, sentence) VALUES(?, ?);', [(n, m) for m in msgs])
+        yui.db.commit()
+
     msg_buffer = {}
 
 
-# save models to db
-def save_models():
-    for n, m in nick_models.items():
-        json = m.to_json()
-        yui.db.execute('REPLACE INTO markov(nick, model) VALUES(?, ?)', (n, json))
-    yui.db.commit()
-
-
-# load saved models from db
+# load saved sentences from db
 def load_models():
-    c = yui.db.execute('SELECT nick, model FROM markov;')
+    global nick_models
+    c = yui.db.execute("SELECT lower(nick), group_concat(sentence, '\n') FROM markov GROUP BY nick;")
     for row in c:
-        nick_models[row[0]] = markovify.NewlineText.from_json(row[1])
+        try:
+            if row[0] and row[1]:
+                nick_models[row[0]] = markovify.NewlineText(row[1], state_size=STATE_SIZE)
+        except:
+            continue
 
 
 # generate a sentence for a given nick
@@ -109,7 +119,6 @@ def recv(channel, user, msg):
 
     if msg_count > BUFFER_SIZE:
         merge_buffers()
-        save_models()
         msg_count = 0
 
 
