@@ -1,3 +1,5 @@
+# coding=utf-8
+
 import random
 
 @yui.command('roll', 'random', 'rnd')

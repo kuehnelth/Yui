@@ -1,3 +1,5 @@
+# coding=utf-8
+
 @yui.event('connect')
 def autoJoin():
     # set user modes if any are configured
