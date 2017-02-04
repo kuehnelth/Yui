@@ -1,3 +1,5 @@
+# coding=utf-8
+
 import random
 import re
 
@@ -6,8 +8,7 @@ phrases = [
     ['yo', 'sup'],
     ['hallo', 'tag', 'moin'],
     ['こんにちは', 'こんちわ'],
-    ['よ', 'やぁ', 'おっす'],
-    ['hä','hö']
+    ['よ', 'やぁ', 'おっす']
 ]
 
 
