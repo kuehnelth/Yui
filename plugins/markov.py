@@ -24,7 +24,7 @@ lock = threading.Lock()
 @yui.command('markov_loadfile')
 def load_file(argv):
     """Add a an IRC log file to the existing markov models. Messages in the file must be the same format as ZNC
-    writes them, [NN:NN:NN] <NICK> MSG. Usage: markov_loadgile <path>"""
+    writes them, [NN:NN:NN] <NICK> MSG. Usage: markov_loadfile <path>"""
 
     if len(argv) < 2:
         return
