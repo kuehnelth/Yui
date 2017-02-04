@@ -48,9 +48,9 @@ class IRCClient(object):
                 stripped = stripped[:self.max_msg_len]
 
             stripped += '\r\n'
-            utf8 = stripped.encode(self.encoding)
+            encoded = stripped.encode(self.encoding)
 
-            self.socket.send(utf8)
+            self.socket.send(encoded)
 
         except TypeError as ex:
             return False  # invalid msg
