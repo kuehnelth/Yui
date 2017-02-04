@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# coding=utf-8
 
 import builtins  # setting yui as a builtin
 import csv  # parsing commands

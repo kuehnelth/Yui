@@ -1,3 +1,5 @@
+# coding=utf-8
+
 import html.parser
 import re
 import urllib.request

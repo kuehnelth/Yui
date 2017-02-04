@@ -1,3 +1,5 @@
+# coding=utf-8
+
 import re
 
 REGEX_TIME = re.compile(r'^(?:(?P<days>\d+)[dD])?(?:(?P<hours>\d+)[hH])?(?:(?P<minutes>\d+)[mM])?$')
